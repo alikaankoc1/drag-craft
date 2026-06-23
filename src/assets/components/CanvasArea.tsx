@@ -39,9 +39,7 @@ export default function CanvasArea({
     }
   };
 
-  // --- İÇERİDE SÜRÜKLEME (ELEMENT DRAGGING) MEKANİZMASI ---
   const handleElementMouseDown = (e: React.MouseEvent, el: CanvasElement) => {
-    // Eğer şu an metin düzenliyorsak sürüklemeyi engelle
     if (editingId === el.id) return;
     
     e.stopPropagation();
@@ -50,7 +48,6 @@ export default function CanvasArea({
     if (!canvasRef.current) return;
     const canvasRect = canvasRef.current.getBoundingClientRect();
 
-    // Elemana tıklandığı andaki fare ucu ile elemanın merkezi arasındaki farkı hesaplıyoruz
     const startX = e.clientX - canvasRect.left - el.x;
     const startY = e.clientY - canvasRect.top - el.y;
 
@@ -58,7 +55,6 @@ export default function CanvasArea({
       let newX = moveEvent.clientX - canvasRect.left - startX;
       let newY = moveEvent.clientY - canvasRect.top - startY;
 
-      // Canvas sınırlarının dışına çıkmasını engelleme (Opsiyonel / Sınırlandırma)
       newX = Math.max(0, Math.min(newX, canvasRect.width));
       newY = Math.max(0, Math.min(newY, canvasRect.height));
 
@@ -66,7 +62,6 @@ export default function CanvasArea({
     };
 
     const handleMouseUp = () => {
-      // Fare bırakıldığında event dinleyicilerini temizle bellek şişmesin
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
@@ -74,7 +69,6 @@ export default function CanvasArea({
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
-  // --------------------------------------------------------
 
   return (
     <main className="flex-1 bg-slate-900 p-8 flex items-center justify-center overflow-auto">
@@ -96,10 +90,15 @@ export default function CanvasArea({
             const isSelected = el.id === selectedId;
             const isEditing = el.id === editingId;
 
+            // Dinamik genişlik, yükseklik ve rengi buraya aktarıyoruz
             const style: React.CSSProperties = {
               position: 'absolute',
               left: `${el.x}px`,
               top: `${el.y}px`,
+              width: el.type !== 'text' ? `${el.width}px` : undefined,
+              height: el.type !== 'text' ? `${el.height}px` : undefined,
+              color: el.type === 'text' ? el.color : undefined,
+              backgroundColor: (el.type === 'rect' || el.type === 'circle') ? el.color : undefined,
               transform: 'translate(-50%, -50%)',
             };
 
@@ -123,7 +122,7 @@ export default function CanvasArea({
                     setEditingId(null);
                     onUpdateText(el.id, e.target.innerText);
                   }}
-                  className={`cursor-move text-black font-medium px-2 py-1 rounded text-lg min-w-[50px] border-none focus:outline-none bg-transparent ${activeClass}`}
+                  className={`cursor-move font-medium px-2 py-1 rounded text-lg min-w-[50px] border-none focus:outline-none bg-transparent whitespace-nowrap ${activeClass}`}
                 >
                   {el.text}
                 </div>
@@ -136,7 +135,7 @@ export default function CanvasArea({
                   key={el.id}
                   style={style}
                   onMouseDown={(e) => handleElementMouseDown(e, el)}
-                  className={`w-24 h-24 bg-blue-500 cursor-move rounded-sm shadow-md transition-shadow ${activeClass}`}
+                  className={`cursor-move rounded-sm shadow-md transition-shadow ${activeClass}`}
                 />
               );
             }
@@ -147,7 +146,7 @@ export default function CanvasArea({
                   key={el.id}
                   style={style}
                   onMouseDown={(e) => handleElementMouseDown(e, el)}
-                  className={`w-24 h-24 bg-red-500 rounded-full cursor-move shadow-md transition-shadow ${activeClass}`}
+                  className={`cursor-move rounded-full shadow-md transition-shadow ${activeClass}`}
                 />
               );
             }
@@ -158,7 +157,7 @@ export default function CanvasArea({
                   key={el.id}
                   style={style}
                   onMouseDown={(e) => handleElementMouseDown(e, el)}
-                  className={`w-32 h-24 bg-slate-200 border border-dashed border-slate-400 flex items-center justify-center cursor-move rounded-md ${activeClass}`}
+                  className={`bg-slate-200 border border-dashed border-slate-400 flex items-center justify-center cursor-move rounded-md ${activeClass}`}
                 >
                   <span className="text-xs text-slate-500 font-medium select-none pointer-events-none">Görsel Alanı</span>
                 </div>

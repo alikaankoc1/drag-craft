@@ -90,7 +90,6 @@ export default function CanvasArea({
             const isSelected = el.id === selectedId;
             const isEditing = el.id === editingId;
 
-            // Dinamik genişlik, yükseklik ve rengi buraya aktarıyoruz
             const style: React.CSSProperties = {
               position: 'absolute',
               left: `${el.x}px`,
@@ -153,14 +152,14 @@ export default function CanvasArea({
 
             if (el.type === 'image') {
               return (
-                <div
+                <img
                   key={el.id}
+                  src={el.src}
+                  alt="Yüklenen Görsel"
                   style={style}
                   onMouseDown={(e) => handleElementMouseDown(e, el)}
-                  className={`bg-slate-200 border border-dashed border-slate-400 flex items-center justify-center cursor-move rounded-md ${activeClass}`}
-                >
-                  <span className="text-xs text-slate-500 font-medium select-none pointer-events-none">Görsel Alanı</span>
-                </div>
+                  className={`cursor-move object-cover shadow-md transition-shadow select-none pointer-events-auto ${activeClass}`}
+                />
               );
             }
 

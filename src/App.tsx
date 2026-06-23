@@ -3,7 +3,6 @@ import Header from './assets/components/Header';
 import Sidebar from './assets/components/Sidebar';
 import CanvasArea from './assets/components/CanvasArea';
 
-// Canvas üzerindeki her bir elemanın sahip olacağı veri yapısı (Type)
 export interface CanvasElement {
   id: string;
   type: 'text' | 'rect' | 'circle' | 'image';
@@ -13,43 +12,45 @@ export interface CanvasElement {
 }
 
 function App() {
-  // Canvas üzerindeki tüm elemanları tutan state
   const [elements, setElements] = useState<CanvasElement[]>([]);
+  // Seçili elemanın ID'sini tutacak state
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Sürüklenen elemanın tipini geçici olarak tutacak fonksiyonlar
   const handleDragStart = (e: React.DragEvent, type: CanvasElement['type']) => {
     e.dataTransfer.setData('text/plain', type);
   };
 
-  // Eleman canvas üzerine bırakıldığında tetiklenecek fonksiyon
   const handleDrop = (e: React.DragEvent, canvasRect: DOMRect) => {
     e.preventDefault();
-    
-    // Bırakılan elemanın tipini alıyoruz (text, rect, circle, image)
     const type = e.dataTransfer.getData('text/plain') as CanvasElement['type'];
-    
     if (!type) return;
 
-    // Fare koordinatlarından canvas'ın sol üst köşesini çıkararak tam bırakılan yeri buluyoruz
     const x = e.clientX - canvasRect.left;
     const y = e.clientY - canvasRect.top;
 
-    // Yeni elemanı oluşturuyoruz
     const newElement: CanvasElement = {
-      id: crypto.randomUUID(), // Benzersiz ID
+      id: crypto.randomUUID(),
       type,
       x,
       y,
-      text: type === 'text' ? 'Çift tıklayıp düzenleyin' : undefined,
+      text: type === 'text' ? 'Düzenlemek için çift tıklayın' : undefined,
     };
 
-    // State'i güncelleyip yeni elemanı canvas'a ekliyoruz
     setElements([...elements, newElement]);
+    // Yeni eklenen elemanı otomatik olarak seçili yapıyoruz
+    setSelectedId(newElement.id);
   };
 
-  // Canvas'ı tamamen temizleme fonksiyonu
+  // Metin içeriği güncellendiğinde tetiklenecek fonksiyon
+  const handleUpdateText = (id: string, newText: string) => {
+    setElements(
+      elements.map((el) => (el.id === id ? { ...el, text: newText } : el))
+    );
+  };
+
   const handleClear = () => {
     setElements([]);
+    setSelectedId(null);
   };
 
   return (
@@ -57,7 +58,13 @@ function App() {
       <Header onClear={handleClear} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar onDragStart={handleDragStart} />
-        <CanvasArea elements={elements} onDrop={handleDrop} />
+        <CanvasArea 
+          elements={elements} 
+          onDrop={handleDrop} 
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onUpdateText={handleUpdateText}
+        />
       </div>
     </div>
   );

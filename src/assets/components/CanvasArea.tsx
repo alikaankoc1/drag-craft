@@ -7,6 +7,7 @@ interface CanvasAreaProps {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onUpdateText: (id: string, newText: string) => void;
+  onUpdatePosition: (id: string, x: number, y: number) => void;
 }
 
 export default function CanvasArea({ 
@@ -14,10 +15,10 @@ export default function CanvasArea({
   onDrop, 
   selectedId, 
   onSelect, 
-  onUpdateText 
+  onUpdateText,
+  onUpdatePosition
 }: CanvasAreaProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
-  // Hangi metnin şu an düzenleme modunda (edit mode) olduğunu tutan state
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -31,13 +32,49 @@ export default function CanvasArea({
     }
   };
 
-  // Boş beyaz alana tıklandığında seçimi temizle
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (e.target === canvasRef.current) {
       onSelect(null);
       setEditingId(null);
     }
   };
+
+  // --- İÇERİDE SÜRÜKLEME (ELEMENT DRAGGING) MEKANİZMASI ---
+  const handleElementMouseDown = (e: React.MouseEvent, el: CanvasElement) => {
+    // Eğer şu an metin düzenliyorsak sürüklemeyi engelle
+    if (editingId === el.id) return;
+    
+    e.stopPropagation();
+    onSelect(el.id);
+
+    if (!canvasRef.current) return;
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+
+    // Elemana tıklandığı andaki fare ucu ile elemanın merkezi arasındaki farkı hesaplıyoruz
+    const startX = e.clientX - canvasRect.left - el.x;
+    const startY = e.clientY - canvasRect.top - el.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      let newX = moveEvent.clientX - canvasRect.left - startX;
+      let newY = moveEvent.clientY - canvasRect.top - startY;
+
+      // Canvas sınırlarının dışına çıkmasını engelleme (Opsiyonel / Sınırlandırma)
+      newX = Math.max(0, Math.min(newX, canvasRect.width));
+      newY = Math.max(0, Math.min(newY, canvasRect.height));
+
+      onUpdatePosition(el.id, newX, newY);
+    };
+
+    const handleMouseUp = () => {
+      // Fare bırakıldığında event dinleyicilerini temizle bellek şişmesin
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+  // --------------------------------------------------------
 
   return (
     <main className="flex-1 bg-slate-900 p-8 flex items-center justify-center overflow-auto">
@@ -66,7 +103,6 @@ export default function CanvasArea({
               transform: 'translate(-50%, -50%)',
             };
 
-            // Seçili elemanların etrafına mavi border ve odaklanma sınıfı ekliyoruz
             const activeClass = isSelected 
               ? 'outline outline-2 outline-blue-500 shadow-lg z-20' 
               : 'hover:outline hover:outline-1 hover:outline-blue-400/50 z-10';
@@ -76,10 +112,7 @@ export default function CanvasArea({
                 <div
                   key={el.id}
                   style={style}
-                  onClick={(e) => {
-                    e.stopPropagation(); // Üst taraftaki canvas click'ini engellemek için
-                    onSelect(el.id);
-                  }}
+                  onMouseDown={(e) => handleElementMouseDown(e, el)}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
                     setEditingId(el.id);
@@ -102,10 +135,7 @@ export default function CanvasArea({
                 <div
                   key={el.id}
                   style={style}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelect(el.id);
-                  }}
+                  onMouseDown={(e) => handleElementMouseDown(e, el)}
                   className={`w-24 h-24 bg-blue-500 cursor-move rounded-sm shadow-md transition-shadow ${activeClass}`}
                 />
               );
@@ -116,10 +146,7 @@ export default function CanvasArea({
                 <div
                   key={el.id}
                   style={style}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelect(el.id);
-                  }}
+                  onMouseDown={(e) => handleElementMouseDown(e, el)}
                   className={`w-24 h-24 bg-red-500 rounded-full cursor-move shadow-md transition-shadow ${activeClass}`}
                 />
               );
@@ -130,10 +157,7 @@ export default function CanvasArea({
                 <div
                   key={el.id}
                   style={style}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelect(el.id);
-                  }}
+                  onMouseDown={(e) => handleElementMouseDown(e, el)}
                   className={`w-32 h-24 bg-slate-200 border border-dashed border-slate-400 flex items-center justify-center cursor-move rounded-md ${activeClass}`}
                 >
                   <span className="text-xs text-slate-500 font-medium select-none pointer-events-none">Görsel Alanı</span>

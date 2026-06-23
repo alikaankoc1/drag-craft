@@ -13,7 +13,6 @@ export interface CanvasElement {
 
 function App() {
   const [elements, setElements] = useState<CanvasElement[]>([]);
-  // Seçili elemanın ID'sini tutacak state
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const handleDragStart = (e: React.DragEvent, type: CanvasElement['type']) => {
@@ -37,11 +36,16 @@ function App() {
     };
 
     setElements([...elements, newElement]);
-    // Yeni eklenen elemanı otomatik olarak seçili yapıyoruz
     setSelectedId(newElement.id);
   };
 
-  // Metin içeriği güncellendiğinde tetiklenecek fonksiyon
+  // Sürüklenen elemanın koordinatlarını anlık güncelleyen fonksiyon
+  const handleUpdatePosition = (id: string, x: number, y: number) => {
+    setElements((prev) =>
+      prev.map((el) => (el.id === id ? { ...el, x, y } : el))
+    );
+  };
+
   const handleUpdateText = (id: string, newText: string) => {
     setElements(
       elements.map((el) => (el.id === id ? { ...el, text: newText } : el))
@@ -64,6 +68,7 @@ function App() {
           selectedId={selectedId}
           onSelect={setSelectedId}
           onUpdateText={handleUpdateText}
+          onUpdatePosition={handleUpdatePosition} // Yeni fonksiyonu geçtik
         />
       </div>
     </div>

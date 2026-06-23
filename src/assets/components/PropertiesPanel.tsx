@@ -6,6 +6,15 @@ interface PropertiesPanelProps {
   onDelete: () => void;
 }
 
+const FONT_FAMILIES = [
+  { id: 'sans-serif', label: 'Sans Serif (Standart)' },
+  { id: 'serif', label: 'Serif (Klasik)' },
+  { id: 'monospace', label: 'Monospace (Kod)' },
+  { id: 'cursive', label: 'Cursive (El Yazısı)' },
+  { id: 'Georgia', label: 'Georgia' },
+  { id: 'Impact', label: 'Impact (Kalın)' },
+];
+
 export default function PropertiesPanel({ element, onUpdate, onDelete }: PropertiesPanelProps) {
   if (!element) {
     return (
@@ -26,7 +35,44 @@ export default function PropertiesPanel({ element, onUpdate, onDelete }: Propert
 
       <hr className="border-slate-700" />
 
-      {/* RENK AYARI (Görsel elementi hariç) */}
+      {/* METİN AYARLARI (Sadece yazı seçildiğinde gelir) */}
+      {element.type === 'text' && (
+        <div className="flex flex-col gap-4">
+          {/* Font Family */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-400">Yazı Tipi</label>
+            <select
+              value={element.fontFamily || 'sans-serif'}
+              onChange={(e) => onUpdate({ fontFamily: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-500 w-full text-slate-200 cursor-pointer"
+            >
+              {FONT_FAMILIES.map((font) => (
+                <option key={font.id} value={font.id} style={{ fontFamily: font.id }}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Font Size */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-400">Yazı Boyutu (px)</label>
+            <div className="flex items-center bg-slate-700 rounded-lg border border-slate-600 px-2">
+              <input
+                type="number"
+                min="8"
+                max="120"
+                value={element.fontSize || 18}
+                onChange={(e) => onUpdate({ fontSize: Number(e.target.value) })}
+                className="bg-transparent border-none py-2 text-sm focus:outline-none w-full font-mono text-center text-slate-200"
+              />
+              <span className="text-xs text-slate-400 font-mono pr-1">px</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RENK AYARI (Görsel elementi hariç her şeyde ortak) */}
       {element.type !== 'image' && (
         <div className="flex flex-col gap-2">
           <label className="text-xs font-medium text-slate-400">Renk</label>
@@ -42,7 +88,7 @@ export default function PropertiesPanel({ element, onUpdate, onDelete }: Propert
         </div>
       )}
 
-      {/* BOYUT AYARLARI (Metin hariç - metin otomatik büyür) */}
+      {/* BOYUT AYARLARI (Metin hariç) */}
       {element.type !== 'text' && (
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">

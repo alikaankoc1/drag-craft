@@ -14,6 +14,8 @@ export interface CanvasElement {
   color: string;
   text?: string;
   src?: string;
+  fontSize?: number;   // Yeni: Font boyutu (px)
+  fontFamily?: string; // Yeni: Font ailesi
 }
 
 function App() {
@@ -22,7 +24,6 @@ function App() {
 
   const selectedElement = elements.find((el) => el.id === selectedId) || null;
 
-  // 1. Sayfa yüklendiğinde LocalStorage'dan eski tasarımı geri yükle
   useEffect(() => {
     const savedData = localStorage.getItem('canvas_design');
     if (savedData) {
@@ -34,13 +35,11 @@ function App() {
     }
   }, []);
 
-  // 2. Tarayıcı Hafızasına Kaydetme (Local Storage)
   const handleSaveToLocalStorage = () => {
     localStorage.setItem('canvas_design', JSON.stringify(elements));
     alert('Tasarımınız tarayıcı hafızasına başarıyla kaydedildi! 🚀');
   };
 
-  // 3. Bilgisayara JSON Dosyası Olarak İndirme (Export)
   const handleExportJSON = () => {
     if (elements.length === 0) {
       alert('İndirmek için canvas üzerinde en az bir eleman olmalıdır.');
@@ -55,7 +54,6 @@ function App() {
     downloadAnchor.remove();
   };
 
-  // 4. Bilgisayardan Seçilen JSON Dosyasını Canvas'a Basma (Import)
   const handleImportJSON = (jsonData: string) => {
     try {
       const parsedData = JSON.parse(jsonData) as CanvasElement[];
@@ -88,10 +86,12 @@ function App() {
       type,
       x,
       y,
-      width: type === 'text' ? 150 : 96,
-      height: type === 'text' ? 40 : 96,
+      width: type === 'text' ? 200 : 96,
+      height: type === 'text' ? 50 : 96,
       color: type === 'rect' ? '#3b82f6' : type === 'circle' ? '#ef4444' : '#000000',
       text: type === 'text' ? 'Düzenlemek için çift tıklayın' : undefined,
+      fontSize: type === 'text' ? 18 : undefined, // Varsayılan metin boyutu
+      fontFamily: type === 'text' ? 'sans-serif' : undefined, // Varsayılan font ailesi
     };
 
     setElements([...elements, newElement]);
@@ -146,7 +146,7 @@ function App() {
   const handleClear = () => {
     setElements([]);
     setSelectedId(null);
-    localStorage.removeItem('canvas_design'); // Temizlendiğinde hafızayı da uçuruyoruz
+    localStorage.removeItem('canvas_design');
   };
 
   return (

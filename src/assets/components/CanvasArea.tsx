@@ -90,6 +90,7 @@ export default function CanvasArea({
             const isSelected = el.id === selectedId;
             const isEditing = el.id === editingId;
 
+            // Dinamik font özellikleri stil nesnesine ekleniyor
             const style: React.CSSProperties = {
               position: 'absolute',
               left: `${el.x}px`,
@@ -99,6 +100,8 @@ export default function CanvasArea({
               color: el.type === 'text' ? el.color : undefined,
               backgroundColor: (el.type === 'rect' || el.type === 'circle') ? el.color : undefined,
               transform: 'translate(-50%, -50%)',
+              fontSize: el.type === 'text' ? `${el.fontSize}px` : undefined, // Dinamik boyut
+              fontFamily: el.type === 'text' ? el.fontFamily : undefined,    // Dinamik font ailesi
             };
 
             const activeClass = isSelected 
@@ -121,7 +124,7 @@ export default function CanvasArea({
                     setEditingId(null);
                     onUpdateText(el.id, e.target.innerText);
                   }}
-                  className={`cursor-move font-medium px-2 py-1 rounded text-lg min-w-[50px] border-none focus:outline-none bg-transparent whitespace-nowrap ${activeClass}`}
+                  className={`cursor-move font-medium px-2 py-1 rounded min-w-[50px] border-none focus:outline-none bg-transparent whitespace-nowrap ${activeClass}`}
                 >
                   {el.text}
                 </div>

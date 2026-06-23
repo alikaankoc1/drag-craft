@@ -13,7 +13,7 @@ export interface CanvasElement {
   height: number;
   color: string;
   text?: string;
-  src?: string; // Yeni: Yüklenen resmin URL'ini tutacak alan
+  src?: string;
 }
 
 function App() {
@@ -22,6 +22,55 @@ function App() {
 
   const selectedElement = elements.find((el) => el.id === selectedId) || null;
 
+  // 1. Sayfa yüklendiğinde LocalStorage'dan eski tasarımı geri yükle
+  useEffect(() => {
+    const savedData = localStorage.getItem('canvas_design');
+    if (savedData) {
+      try {
+        setElements(JSON.parse(savedData));
+      } catch (e) {
+        console.error('Kayıtlı veri yüklenirken hata oluştu:', e);
+      }
+    }
+  }, []);
+
+  // 2. Tarayıcı Hafızasına Kaydetme (Local Storage)
+  const handleSaveToLocalStorage = () => {
+    localStorage.setItem('canvas_design', JSON.stringify(elements));
+    alert('Tasarımınız tarayıcı hafızasına başarıyla kaydedildi! 🚀');
+  };
+
+  // 3. Bilgisayara JSON Dosyası Olarak İndirme (Export)
+  const handleExportJSON = () => {
+    if (elements.length === 0) {
+      alert('İndirmek için canvas üzerinde en az bir eleman olmalıdır.');
+      return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(elements, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `tasarim-${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // 4. Bilgisayardan Seçilen JSON Dosyasını Canvas'a Basma (Import)
+  const handleImportJSON = (jsonData: string) => {
+    try {
+      const parsedData = JSON.parse(jsonData) as CanvasElement[];
+      if (Array.isArray(parsedData)) {
+        setElements(parsedData);
+        setSelectedId(null);
+        alert('Tasarım başarıyla yüklendi! 📂');
+      } else {
+        alert('Geçersiz dosya formatı.');
+      }
+    } catch (e) {
+      alert('Dosya okunurken bir hata oluştu, lütfen geçerli bir JSON seçin.');
+    }
+  };
+
   const handleDragStart = (e: React.DragEvent, type: CanvasElement['type']) => {
     e.dataTransfer.setData('text/plain', type);
   };
@@ -29,7 +78,7 @@ function App() {
   const handleDrop = (e: React.DragEvent, canvasRect: DOMRect) => {
     e.preventDefault();
     const type = e.dataTransfer.getData('text/plain') as CanvasElement['type'];
-    if (!type || type === 'image') return; // Image tipini buradan engelliyoruz, çünkü onu input ile alacağız
+    if (!type || type === 'image') return;
 
     const x = e.clientX - canvasRect.left;
     const y = e.clientY - canvasRect.top;
@@ -49,19 +98,17 @@ function App() {
     setSelectedId(newElement.id);
   };
 
-  // Yeni: Dışarıdan yüklenen resmi canvas'ın merkezine ekleyen fonksiyon
   const handleAddImage = (imageSrc: string) => {
     const newElement: CanvasElement = {
       id: crypto.randomUUID(),
       type: 'image',
-      x: 400, // Canvas'ın tam ortası (800 / 2)
-      y: 250, // Canvas'ın tam ortası (500 / 2)
-      width: 200, // Varsayılan resim genişliği
-      height: 150, // Varsayılan resim yüksekliği
+      x: 400,
+      y: 250,
+      width: 200,
+      height: 150,
       color: 'transparent',
       src: imageSrc
     };
-
     setElements([...elements, newElement]);
     setSelectedId(newElement.id);
   };
@@ -99,13 +146,18 @@ function App() {
   const handleClear = () => {
     setElements([]);
     setSelectedId(null);
+    localStorage.removeItem('canvas_design'); // Temizlendiğinde hafızayı da uçuruyoruz
   };
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-sans antialiased bg-slate-900 selection:bg-blue-500/30">
-      <Header onClear={handleClear} />
+      <Header 
+        onClear={handleClear} 
+        onSave={handleSaveToLocalStorage}
+        onExport={handleExportJSON}
+        onImport={handleImportJSON}
+      />
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar'a resim ekleme fonksiyonunu gönderiyoruz */}
         <Sidebar onDragStart={handleDragStart} onImageUpload={handleAddImage} />
         <CanvasArea 
           elements={elements} 

@@ -3,6 +3,8 @@ import Header from './assets/components/Header';
 import Sidebar from './assets/components/Sidebar';
 import CanvasArea from './assets/components/CanvasArea';
 import PropertiesPanel from './assets/components/PropertiesPanel';
+import { useToast } from './assets/components/ToastProvider';
+import { validateCanvasSize, validateFileSize, validateFileType, safeLocalStorage, LIMITS } from './utils/validation';
 
 export interface CanvasElement {
   id: string;
@@ -30,6 +32,7 @@ export interface SavedProject {
 function App() {
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const toast = useToast();
   
   const [canvasWidth, setCanvasWidth] = useState<number>(1080);
   const [canvasHeight, setCanvasHeight] = useState<number>(1080);
@@ -42,18 +45,40 @@ function App() {
   const [customHeight, setCustomHeight] = useState<string>('1080');
 
   const [projects, setProjects] = useState<SavedProject[]>(() => {
-    const saved = localStorage.getItem('img_resizer_projects');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return []; }
+    const result = safeLocalStorage<SavedProject[]>('get', 'img_resizer_projects');
+    if (result.success && result.data) {
+      return result.data;
     }
     return [];
   });
 
   const selectedElement = elements.find((el) => el.id === selectedId) || null;
 
-  const handleAddImage = (imageSrc: string) => {
+  const handleAddImage = (imageSrc: string, file?: File) => {
     const w = parseInt(customWidth) || 1080;
     const h = parseInt(customHeight) || 1080;
+    
+    // Validate canvas size
+    const sizeValidation = validateCanvasSize(w, h);
+    if (!sizeValidation.valid) {
+      toast.show(sizeValidation.error || 'Geçersiz canvas boyutu');
+      return;
+    }
+
+    // Validate file if provided
+    if (file) {
+      const fileSizeValidation = validateFileSize(file);
+      if (!fileSizeValidation.valid) {
+        toast.show(fileSizeValidation.error || 'Dosya çok büyük');
+        return;
+      }
+
+      const fileTypeValidation = validateFileType(file);
+      if (!fileTypeValidation.valid) {
+        toast.show(fileTypeValidation.error || 'Desteklenmeyen dosya türü');
+        return;
+      }
+    }
     
     setCanvasWidth(w);
     setCanvasHeight(h);
@@ -77,27 +102,42 @@ function App() {
 
   const saveProjectsToStorage = (updatedProjects: SavedProject[]) => {
     setProjects(updatedProjects);
-    localStorage.setItem('img_resizer_projects', JSON.stringify(updatedProjects));
+    const result = safeLocalStorage('set', 'img_resizer_projects', updatedProjects);
+    if (!result.success) {
+      toast.show(`Kayıt hatası: ${result.error}`);
+      console.error('Failed to save projects:', result.error);
+    }
   };
 
   const handleSaveProject = () => {
     if (elements.length === 0) {
-      alert('Kaydedilecek ayarlanmış bir görsel bulunamadı.');
+      toast.show('Kaydedilecek ayarlanmış bir görsel bulunamadı.');
       return;
     }
 
     let updatedProjects = [...projects];
-
     if (currentProjectId) {
       updatedProjects = updatedProjects.map((p) =>
         p.id === currentProjectId
           ? { ...p, elements, canvasWidth, canvasHeight, updatedAt: new Date().toLocaleString('tr-TR') }
           : p
       );
-      alert('Görsel boyut ayarları güncellendi! 💾');
+      toast.show('Görsel boyut ayarları güncellendi! 💾');
     } else {
-      const projectName = prompt('Bu boyutlandırma çalışmasına bir isim verin:', `Görsel Boyutu - ${canvasWidth}x${canvasHeight}`);
-      if (!projectName) return;
+      // Auto-name projects: "Proje 1", "Proje 2", ...
+      const existingNums = projects
+        .map((p) => {
+          const m = p.name.match(/Proje\s*(\d+)/i);
+          return m ? parseInt(m[1], 10) : null;
+        })
+        .filter((n) => n !== null) as number[];
+      let nextNum = projects.length + 1;
+      if (existingNums.length > 0) {
+        const max = Math.max(...existingNums);
+        nextNum = Math.max(nextNum, max + 1);
+      }
+
+      const projectName = `Proje ${nextNum}`;
 
       const newProject: SavedProject = {
         id: crypto.randomUUID(),
@@ -109,7 +149,7 @@ function App() {
       };
       updatedProjects.push(newProject);
       setCurrentProjectId(newProject.id);
-      alert('Boyut ayarı başarıyla kaydedildi! 🚀');
+      toast.show('Boyut ayarı başarıyla kaydedildi! 🚀');
     }
 
     saveProjectsToStorage(updatedProjects);
@@ -130,7 +170,10 @@ function App() {
     if (!confirm('Bu boyutlandırma kaydını silmek istediğinize emin misiniz?')) return;
     const updated = projects.filter((p) => p.id !== id);
     saveProjectsToStorage(updated);
-    if (currentProjectId === id) handleClear();
+    if (currentProjectId === id) {
+      handleClear();
+      toast.show('Proje silindi.');
+    }
   };
 
   const handleClear = () => {
@@ -142,15 +185,14 @@ function App() {
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-sans antialiased bg-slate-900 text-white select-none">
       <Header 
-      onClear={handleClear} 
-  onSave={handleSaveProject}
-  currentView={currentView === 'history' ? 'dashboard' : currentView}
-  onViewChange={(v) => setCurrentView(v as any)}
+        onClear={handleClear} 
+        onSave={handleSaveProject}
+        currentView={currentView === 'history' ? 'dashboard' : currentView}
+        onViewChange={(v) => setCurrentView(v as 'editor' | 'dashboard' | 'history')}
       />
       
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
-          onImageUpload={handleAddImage}
           currentView={currentView}
           onViewChange={setCurrentView}
         />
@@ -165,6 +207,7 @@ function App() {
               onSelect={setSelectedId}
               onUpdateText={() => {}}
               onUpdatePosition={(id, x, y) => setElements(elements.map(el => el.id === id ? { ...el, x, y } : el))}
+              onUpdateElement={(id, updates) => setElements(elements.map(el => el.id === id ? { ...el, ...updates } : el))}
               canvasWidth={canvasWidth}
               canvasHeight={canvasHeight}
             />
@@ -201,20 +244,26 @@ function App() {
           <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Genişlik (px)</label>
           <input 
             type="number" 
+            min={LIMITS.MIN_CANVAS_SIZE}
+            max={LIMITS.MAX_CANVAS_SIZE}
             value={customWidth} 
             onChange={(e) => setCustomWidth(e.target.value)}
             className="w-full bg-slate-800 text-white font-mono text-base border border-slate-700/80 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
           />
+          <span className="text-[9px] text-slate-500">{LIMITS.MIN_CANVAS_SIZE}–{LIMITS.MAX_CANVAS_SIZE}px</span>
         </div>
         <div className="text-slate-500 font-bold text-lg self-end pb-2">✕</div>
         <div className="flex flex-col gap-1.5 items-start flex-1">
           <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Yükseklik (px)</label>
           <input 
             type="number" 
+            min={LIMITS.MIN_CANVAS_SIZE}
+            max={LIMITS.MAX_CANVAS_SIZE}
             value={customHeight} 
             onChange={(e) => setCustomHeight(e.target.value)}
             className="w-full bg-slate-800 text-white font-mono text-base border border-slate-700/80 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
           />
+          <span className="text-[9px] text-slate-500">{LIMITS.MIN_CANVAS_SIZE}–{LIMITS.MAX_CANVAS_SIZE}px</span>
         </div>
       </div>
 
@@ -228,7 +277,10 @@ function App() {
             if (file) {
               const reader = new FileReader();
               reader.onload = (event) => {
-                if (event.target?.result) handleAddImage(event.target.result as string);
+                if (event.target?.result) handleAddImage(event.target.result as string, file);
+              };
+              reader.onerror = () => {
+                toast.show('Dosya okuma hatası. Lütfen tekrar deneyin.');
               };
               reader.readAsDataURL(file);
             }
@@ -305,76 +357,106 @@ function App() {
   {/* 📥 SEÇMELİ FORMAT İLE PC'YE İNDİRME BUTONU (BÜYÜTÜLDÜ) */}
   <button
     onClick={() => {
-      const format = prompt(
-        `"${project.name}" çalışmasını hangi formatta indirmek istersiniz?\n\nSeçenekler: png, jpeg, json`,
-        "png"
-      )?.toLowerCase().trim();
+      try {
+        const format = prompt(
+          `"${project.name}" çalışmasını hangi formatta indirmek istersiniz?\n\nSeçenekler: png, jpeg, json`,
+          "png"
+        )?.toLowerCase().trim();
 
-      if (!format) return;
+        if (!format) return;
 
-      const fileBaseName = project.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-
-      if (format === 'json') {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `${fileBaseName}_config.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-        return;
-      }
-
-      if (format === 'png' || format === 'jpeg') {
-        const canvas = document.createElement('canvas');
-        canvas.width = project.canvasWidth;
-        canvas.height = project.canvasHeight;
-        const ctx = canvas.getContext('2d');
-
-        if (!ctx) {
-          alert('Görsel dönüştürme hatası oluştu.');
+        const allowedFormats = ['png', 'jpeg', 'json'];
+        if (!allowedFormats.includes(format)) {
+          toast.show('Geçersiz format! Lütfen sadece png, jpeg veya json yazın.');
           return;
         }
 
-        if (format === 'jpeg') {
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const fileBaseName = project.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+        if (format === 'json') {
+          try {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `${fileBaseName}_config.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            toast.show('Proje JSON olarak indirildi.');
+          } catch (err) {
+            toast.show('JSON indirme hatası.');
+            console.error('JSON download error:', err);
+          }
+          return;
         }
 
-        const imageElement = project.elements.find(el => el.type === 'image' && el.src);
+        if (format === 'png' || format === 'jpeg') {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = project.canvasWidth;
+            canvas.height = project.canvasHeight;
+            const ctx = canvas.getContext('2d');
 
-        if (imageElement && imageElement.src) {
-          const img = new Image();
+            if (!ctx) {
+              toast.show('Canvas context alınamadı.');
+              return;
+            }
+
+            if (format === 'jpeg') {
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            const imageElement = project.elements.find(el => el.type === 'image' && el.src);
+
+            if (!imageElement || !imageElement.src) {
+              toast.show('Bu çalışmada boyutlandırılacak bir görsel bulunamadı.');
+              return;
+            }
+
+            const img = new Image();
           img.crossOrigin = "anonymous"; 
           img.src = imageElement.src;
 
           img.onload = () => {
-            const drawX = imageElement.x - (imageElement.width / 2);
-            const drawY = imageElement.y - (imageElement.height / 2);
-            
-            ctx.drawImage(img, drawX, drawY, imageElement.width, imageElement.height);
+            try {
+              const drawX = imageElement.x - (imageElement.width / 2);
+              const drawY = imageElement.y - (imageElement.height / 2);
+              
+              ctx.drawImage(img, drawX, drawY, imageElement.width, imageElement.height);
 
-            const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
-            const imgUrl = canvas.toDataURL(mimeType, 1.0);
-            
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", imgUrl);
-            downloadAnchor.setAttribute("download", `${fileBaseName}.${format}`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+              const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+              const imgUrl = canvas.toDataURL(mimeType, 0.9); // Quality: 0.9
+              
+              const downloadAnchor = document.createElement('a');
+              downloadAnchor.setAttribute("href", imgUrl);
+              downloadAnchor.setAttribute("download", `${fileBaseName}.${format}`);
+              document.body.appendChild(downloadAnchor);
+              downloadAnchor.click();
+              downloadAnchor.remove();
+              toast.show(`Görsel ${format.toUpperCase()} olarak indirildi.`);
+            } catch (err) {
+              toast.show('Görsel dönüştürme sırasında hata oluştu.');
+              console.error('Image conversion error:', err);
+            }
           };
 
           img.onerror = () => {
-            alert('Görsel dosyası yüklenirken bir hata oluştu.');
+            toast.show('Görsel yüklenirken hata oluştu. Dosya geçerli midir?');
           };
-        } else {
-          alert('Bu çalışmada boyutlandırılacak bir görsel bulunamadı.');
+          
+          img.onabort = () => {
+            toast.show('Görsel yükleme iptal edildi.');
+          };
+          } catch (err) {
+            toast.show('Indirme işlemi başlatılamadı.');
+            console.error('Download error:', err);
+          }
         }
-        return;
+      } catch (err) {
+        toast.show('Bir hata oluştu.');
+        console.error('Export error:', err);
       }
-
-      alert('Geçersiz format! Lütfen sadece png, jpeg veya json yazın.');
     }}
     className="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white text-lg w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:shadow-emerald-600/20 active:scale-95 transition-all"
     title="Format Seç ve İndir"

@@ -8,6 +8,7 @@ interface CanvasAreaProps {
   onSelect: (id: string | null) => void;
   onUpdateText: (id: string, newText: string) => void;
   onUpdatePosition: (id: string, x: number, y: number) => void;
+  onUpdateElement?: (id: string, updates: Partial<CanvasElement>) => void;
   canvasWidth: number;  // Yeni prop
   canvasHeight: number; // Yeni prop
 }
@@ -19,6 +20,7 @@ export default function CanvasArea({
   onSelect, 
   onUpdateText,
   onUpdatePosition,
+  onUpdateElement,
   canvasWidth,
   canvasHeight
 }: CanvasAreaProps) {
@@ -59,8 +61,14 @@ export default function CanvasArea({
       let newX = moveEvent.clientX - canvasRect.left - startX;
       let newY = moveEvent.clientY - canvasRect.top - startY;
 
-      newX = Math.max(0, Math.min(newX, canvasRect.width));
-      newY = Math.max(0, Math.min(newY, canvasRect.height));
+      // Allow panning/positioning beyond canvas edges so user can crop by moving image
+      const minX = -el.width / 2;
+      const maxX = canvasRect.width + el.width / 2;
+      const minY = -el.height / 2;
+      const maxY = canvasRect.height + el.height / 2;
+
+      newX = Math.max(minX, Math.min(newX, maxX));
+      newY = Math.max(minY, Math.min(newY, maxY));
 
       onUpdatePosition(el.id, newX, newY);
     };
@@ -74,8 +82,46 @@ export default function CanvasArea({
     window.addEventListener('mouseup', handleMouseUp);
   };
 
+  // --- Simple bottom-right resize handler (supports increasing/decreasing size) ---
+  const startResizeCorner = (e: React.MouseEvent, el: CanvasElement, corner: 'tl' | 'tr' | 'bl' | 'br') => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!onUpdateElement || !canvasRef.current) return;
+
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const startW = el.width;
+    const startH = el.height;
+    const startX = el.x;
+    const startY = el.y;
+
+    const isRight = corner.includes('r');
+    const isBottom = corner.includes('b');
+
+    const handleMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startMouseX;
+      const deltaY = moveEvent.clientY - startMouseY;
+
+      const newW = Math.max(24, startW + (isRight ? deltaX : -deltaX));
+      const newH = Math.max(24, startH + (isBottom ? deltaY : -deltaY));
+
+      const newX = startX + deltaX / 2;
+      const newY = startY + deltaY / 2;
+
+      onUpdateElement(el.id, { width: newW, height: newH, x: newX, y: newY });
+    };
+
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
   return (
-    <main className="flex-1 bg-slate-900 p-8 flex items-center justify-center overflow-auto min-h-0 min-w-0">
+    <main className="flex-1 bg-slate-900 p-8 flex items-center justify-center overflow-hidden min-h-0 min-w-0">
       <div
         ref={canvasRef}
         onDragOver={handleDragOver}
@@ -158,15 +204,42 @@ export default function CanvasArea({
             }
 
             if (el.type === 'image') {
+              // Wrap image to add resize handle when selected
               return (
-                <img
+                <div
                   key={el.id}
-                  src={el.src}
-                  alt="Yüklenen Görsel"
                   style={style}
                   onMouseDown={(e) => handleElementMouseDown(e, el)}
-                  className={`cursor-move object-cover shadow-md transition-shadow select-none pointer-events-auto ${activeClass}`}
-                />
+                  className={`cursor-move relative overflow-visible ${activeClass}`}
+                >
+                  <img
+                    src={el.src}
+                    alt="Yüklenen Görsel"
+                    style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+                    className="select-none pointer-events-auto shadow-md"
+                  />
+
+                  {isSelected && onUpdateElement && (
+                    <>
+                      <div
+                        onMouseDown={(ev) => startResizeCorner(ev, el, 'tl')}
+                        className="absolute w-4 h-4 bg-white/90 border border-slate-600 rounded shadow -left-2 -top-2 cursor-nwse-resize z-30"
+                      />
+                      <div
+                        onMouseDown={(ev) => startResizeCorner(ev, el, 'tr')}
+                        className="absolute w-4 h-4 bg-white/90 border border-slate-600 rounded shadow -right-2 -top-2 cursor-nesw-resize z-30"
+                      />
+                      <div
+                        onMouseDown={(ev) => startResizeCorner(ev, el, 'bl')}
+                        className="absolute w-4 h-4 bg-white/90 border border-slate-600 rounded shadow -left-2 -bottom-2 cursor-nesw-resize z-30"
+                      />
+                      <div
+                        onMouseDown={(ev) => startResizeCorner(ev, el, 'br')}
+                        className="absolute w-4 h-4 bg-white/90 border border-slate-600 rounded shadow -right-2 -bottom-2 cursor-nwse-resize z-30"
+                      />
+                    </>
+                  )}
+                </div>
               );
             }
 

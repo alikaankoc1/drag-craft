@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { CanvasElement, SavedProject } from '../App';
+import type { CanvasElement, SavedProject } from '../App';
 import { safeLocalStorage } from '../utils/validation';
 import { useToast } from '../assets/components/ToastProvider';
 

@@ -188,7 +188,6 @@ function App() {
         onClear={handleClear} 
         onSave={handleSaveProject}
         currentView={currentView === 'history' ? 'dashboard' : currentView}
-        onViewChange={(v) => setCurrentView(v as 'editor' | 'dashboard' | 'history')}
       />
       
       <div className="flex flex-1 overflow-hidden">

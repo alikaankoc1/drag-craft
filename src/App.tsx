@@ -251,63 +251,149 @@ function App() {
   </main>
 )}
 
-        {/* 3. YENİ SAYFA: KAYITLI BOYUTLANDIRMA GEÇMİŞİ SAYFASI */}
-        {currentView === 'history' && (
-          <main className="flex-1 bg-slate-900 p-8 overflow-auto flex flex-col gap-6 max-w-5xl mx-auto w-full animate-fadeIn">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
-                  📂 Kayıtlı Boyutlandırma Geçmişi
-                </h2>
-                <p className="text-xs text-slate-500">Daha önce çalıştığınız ve kaydettiğiniz tüm özel çözünürlükler.</p>
-              </div>
-              <button 
-                onClick={() => setCurrentView('dashboard')}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-              >
-                ← Kapat / Geri Dön
-              </button>
-            </div>
+ {/* 3. KAYITLI BOYUTLANDIRMA GEÇMİŞİ SAYFASI */}
+{currentView === 'history' && (
+  <main className="flex-1 bg-slate-900 p-8 overflow-auto flex flex-col gap-6 max-w-5xl mx-auto w-full animate-fadeIn">
+    <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
+          📂 Kayıtlı Boyutlandırma Geçmişi
+        </h2>
+        <p className="text-xs text-slate-500">Daha önce çalıştığınız ve kaydettiğiniz tüm özel çözünürlükler.</p>
+      </div>
+      <button 
+        onClick={() => setCurrentView('dashboard')}
+        className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+      >
+        ← Kapat / Geri Dön
+      </button>
+    </div>
 
-            {projects.length === 0 ? (
-              <div className="border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-16 text-slate-600 text-sm font-medium gap-2">
-                <span>📁</span>
-                <span>Henüz kaydedilmiş bir boyut çalışması bulunmuyor.</span>
+    {projects.length === 0 ? (
+      <div className="border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-16 text-slate-600 text-sm font-medium gap-2">
+        <span>📁</span>
+        <span>Henüz kaydedilmiş bir boyut çalışması bulunmuyor.</span>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {projects.map((project) => (
+          <div key={project.id} className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 flex items-center justify-between hover:border-blue-500/40 transition-all shadow-md group">
+            <div className="flex flex-col gap-1 min-w-0 flex-1 pr-4">
+              <h4 className="font-bold text-sm text-slate-200 group-hover:text-blue-400 transition-colors truncate">{project.name}</h4>
+              <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono mt-0.5">
+                <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400 font-semibold">
+                  {project.canvasWidth} x {project.canvasHeight} px
+                </span>
+                <span>{project.updatedAt}</span>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {projects.map((project) => (
-                  <div key={project.id} className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 flex items-center justify-between hover:border-blue-500/40 transition-all shadow-md group">
-                    <div className="flex flex-col gap-1 min-w-0 flex-1 pr-4">
-                      <h4 className="font-bold text-sm text-slate-200 group-hover:text-blue-400 transition-colors truncate">{project.name}</h4>
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono mt-0.5">
-                        <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400 font-semibold">
-                          {project.canvasWidth} x {project.canvasHeight} px
-                        </span>
-                        <span>{project.updatedAt}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleLoadProject(project)}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-md transition-all"
-                      >
-                        Aç 📝
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProject(project.id)}
-                        className="bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white p-2 rounded-lg text-xs transition-all"
-                        title="Sil"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </main>
-        )}
+            </div>
+            
+     {/* AKSİYON BUTONLARI (BÜYÜTÜLMÜŞ SÜRÜM) */}
+<div className="flex items-center gap-3 shrink-0">
+  <button
+    onClick={() => handleLoadProject(project)}
+    className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm px-5 py-3 rounded-xl shadow-lg hover:shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-1.5 h-12"
+    title="Çalışmayı Editörde Aç"
+  >
+    <span>Aç</span> 
+    <span className="text-base">📝</span>
+  </button>
+
+  {/* 📥 SEÇMELİ FORMAT İLE PC'YE İNDİRME BUTONU (BÜYÜTÜLDÜ) */}
+  <button
+    onClick={() => {
+      const format = prompt(
+        `"${project.name}" çalışmasını hangi formatta indirmek istersiniz?\n\nSeçenekler: png, jpeg, json`,
+        "png"
+      )?.toLowerCase().trim();
+
+      if (!format) return;
+
+      const fileBaseName = project.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+      if (format === 'json') {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `${fileBaseName}_config.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        return;
+      }
+
+      if (format === 'png' || format === 'jpeg') {
+        const canvas = document.createElement('canvas');
+        canvas.width = project.canvasWidth;
+        canvas.height = project.canvasHeight;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          alert('Görsel dönüştürme hatası oluştu.');
+          return;
+        }
+
+        if (format === 'jpeg') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        const imageElement = project.elements.find(el => el.type === 'image' && el.src);
+
+        if (imageElement && imageElement.src) {
+          const img = new Image();
+          img.crossOrigin = "anonymous"; 
+          img.src = imageElement.src;
+
+          img.onload = () => {
+            const drawX = imageElement.x - (imageElement.width / 2);
+            const drawY = imageElement.y - (imageElement.height / 2);
+            
+            ctx.drawImage(img, drawX, drawY, imageElement.width, imageElement.height);
+
+            const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+            const imgUrl = canvas.toDataURL(mimeType, 1.0);
+            
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", imgUrl);
+            downloadAnchor.setAttribute("download", `${fileBaseName}.${format}`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+          };
+
+          img.onerror = () => {
+            alert('Görsel dosyası yüklenirken bir hata oluştu.');
+          };
+        } else {
+          alert('Bu çalışmada boyutlandırılacak bir görsel bulunamadı.');
+        }
+        return;
+      }
+
+      alert('Geçersiz format! Lütfen sadece png, jpeg veya json yazın.');
+    }}
+    className="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white text-lg w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:shadow-emerald-600/20 active:scale-95 transition-all"
+    title="Format Seç ve İndir"
+  >
+    📥
+  </button>
+
+  {/* 🗑️ SİLME BUTONU (BÜYÜTÜLDÜ) */}
+  <button
+    onClick={() => handleDeleteProject(project.id)}
+    className="bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white text-lg w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:shadow-red-600/20 active:scale-95 transition-all"
+    title="Sil"
+  >
+    🗑️
+  </button>
+</div>
+          </div>
+        ))}
+      </div>
+    )}
+  </main>
+)}
       </div>
     </div>
   );

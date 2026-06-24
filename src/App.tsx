@@ -28,19 +28,16 @@ function App() {
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   
-  // Varsayılan tuval boyutları (Kullanıcı tamamen özgürce değiştirecek)
-  const [canvasWidth, setCanvasWidth] = useState<number>(800);
-  const [canvasHeight, setCanvasHeight] = useState<number>(800);
+  const [canvasWidth, setCanvasWidth] = useState<number>(1080);
+  const [canvasHeight, setCanvasHeight] = useState<number>(1080);
 
-  // Görünüm yönetimi: 'dashboard' (görsel yükleme ekranı) veya 'editor' (boyutlandırma ekranı)
-  const [currentView, setCurrentView] = useState<'editor' | 'dashboard'>('dashboard');
+  // Görünüm modları arasına 'history' eklendi
+  const [currentView, setCurrentView] = useState<'editor' | 'dashboard' | 'history'>('dashboard');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
-  // Giriş alanları için geçici boyut state'leri
-  const [customWidth, setCustomWidth] = useState<string>('800');
-  const [customHeight, setCustomHeight] = useState<string>('600');
+  const [customWidth, setCustomWidth] = useState<string>('1080');
+  const [customHeight, setCustomHeight] = useState<string>('1080');
 
-  // LocalStorage'dan kayıtlı geçmiş boyut çalışmalarını çekiyoruz
   const [projects, setProjects] = useState<SavedProject[]>(() => {
     const saved = localStorage.getItem('img_resizer_projects');
     if (saved) {
@@ -51,10 +48,9 @@ function App() {
 
   const selectedElement = elements.find((el) => el.id === selectedId) || null;
 
-  // 🚀 Yeni Görsel Yüklendiğinde Çalışacak Akış
   const handleAddImage = (imageSrc: string) => {
-    const w = parseInt(customWidth) || 800;
-    const h = parseInt(customHeight) || 600;
+    const w = parseInt(customWidth) || 1080;
+    const h = parseInt(customHeight) || 1080;
     
     setCanvasWidth(w);
     setCanvasHeight(h);
@@ -65,7 +61,7 @@ function App() {
       type: 'image',
       x: w / 2,
       y: h / 2,
-      width: w * 0.9, // Çalışma alanına rahat sığması için %90 oranında başlatıyoruz
+      width: w * 0.9, 
       height: h * 0.9,
       color: 'transparent',
       src: imageSrc
@@ -73,10 +69,9 @@ function App() {
 
     setElements([newElement]);
     setSelectedId(imageId);
-    setCurrentView('editor'); // Doğrudan düzenleme alanına geçiş
+    setCurrentView('editor'); 
   };
 
-  // LocalStorage Kayıt Fonksiyonu
   const saveProjectsToStorage = (updatedProjects: SavedProject[]) => {
     setProjects(updatedProjects);
     localStorage.setItem('img_resizer_projects', JSON.stringify(updatedProjects));
@@ -147,27 +142,19 @@ function App() {
         onClear={handleClear} 
         onSave={handleSaveProject}
         onImport={() => {}}
-        currentView={currentView}
-        onViewChange={setCurrentView}
+        currentView={currentView === 'history' ? 'dashboard' : currentView} // Header uyumluluğu için
+        onViewChange={(v) => setCurrentView(v as any)}
       />
       
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
-          onDragStart={() => {}} 
           onImageUpload={handleAddImage}
           currentView={currentView}
           onViewChange={setCurrentView}
-          onSelectPreset={(w, h) => { 
-            setCanvasWidth(w); 
-            setCanvasHeight(h);
-            setCustomWidth(w.toString());
-            setCustomHeight(h.toString());
-          }}
-          canvasWidth={canvasWidth}
-          canvasHeight={canvasHeight}
         />
         
-        {currentView === 'editor' ? (
+        {/* 1. EDİTÖR GÖRÜNÜMÜ */}
+        {currentView === 'editor' && (
           <>
             <CanvasArea 
               elements={elements} 
@@ -188,22 +175,21 @@ function App() {
               }}
             />
           </>
-        ) : (
-          /* 🎯 DASHBOARD: KARE/DİKTÖRTGEN KALDIRILMIŞ SAF GÖRSEL BOYUTLANDIRICI */
+        )}
+
+        {/* 2. GİRİŞ PANELİ GÖRÜNÜMÜ */}
+        {currentView === 'dashboard' && (
           <main className="flex-1 bg-slate-900 p-8 overflow-auto flex flex-col gap-8 items-center justify-center max-w-4xl mx-auto w-full">
-            
-            {/* GİRİŞ VE BOYUT AYARLAMA KARTI */}
             <div className="w-full bg-slate-800/50 border border-slate-700/60 rounded-2xl p-8 backdrop-blur-sm shadow-2xl flex flex-col gap-6 text-center">
               <div className="flex flex-col gap-2">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2 justify-center">
                   ⚙️ Görsel Boyut Ayarlayıcı
                 </h2>
                 <p className="text-sm text-slate-400">
-                  Hedeflediğiniz genişlik ve yükseklik değerlerini girip görselinizi yükleyin.
+                  Görselinizi yüklemeden önce hedef çözünürlük piksellerini belirleyin.
                 </p>
               </div>
 
-              {/* BOYUT INPUT ALANLARI */}
               <div className="flex items-center justify-center gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 max-w-md mx-auto w-full">
                 <div className="flex flex-col gap-1 items-start flex-1">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Genişlik (px)</label>
@@ -226,7 +212,6 @@ function App() {
                 </div>
               </div>
 
-              {/* DOSYA YÜKLEME / TETİKLEYİCİ ALAN */}
               <div className="border-2 border-dashed border-slate-700 hover:border-blue-500/50 transition-colors rounded-xl p-8 bg-slate-900/30 cursor-pointer max-w-md mx-auto w-full relative group">
                 <input 
                   type="file" 
@@ -245,50 +230,68 @@ function App() {
                 />
                 <div className="flex flex-col items-center gap-3">
                   <span className="text-3xl group-hover:scale-110 transition-transform">📁</span>
-                  <span className="text-xs font-semibold text-slate-300">Görsel Seçin veya Sürükleyin</span>
-                  <span className="text-[10px] text-slate-500 font-medium">PNG, JPG veya WEBP</span>
+                  <span className="text-xs font-semibold text-slate-300">Görsel Seçin veya Buraya Sürükleyin</span>
                 </div>
               </div>
             </div>
+          </main>
+        )}
 
-            {/* GEÇMİŞ ÇALIŞMALAR (KAYDEDİLENLER) LİSTESİ */}
-            <div className="w-full flex flex-col gap-4 mt-4">
-              <h3 className="text-base font-bold text-slate-300 flex items-center gap-2">
-                📂 Kayıtlı Boyutlandırma Geçmişi
-              </h3>
-
-              {projects.length === 0 ? (
-                <div className="border border-dashed border-slate-800 rounded-xl flex items-center justify-center p-6 text-slate-600 text-xs font-medium">
-                  Henüz kaydedilmiş bir boyut ayarı geçmişi yok.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {projects.map((project) => (
-                    <div key={project.id} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 flex items-center justify-between hover:border-slate-600 transition-all shadow-md">
-                      <div className="flex flex-col gap-1 min-w-0 flex-1 pr-2">
-                        <h4 className="font-bold text-sm text-slate-200 truncate">{project.name}</h4>
-                        <span className="text-[11px] text-slate-500 font-mono">Boyut: {project.canvasWidth} x {project.canvasHeight} px</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => handleLoadProject(project)}
-                          className="bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/20 text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
-                        >
-                          Aç
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProject(project.id)}
-                          className="bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white p-1.5 rounded-lg text-xs transition-all"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {/* 3. YENİ SAYFA: KAYITLI BOYUTLANDIRMA GEÇMİŞİ SAYFASI */}
+        {currentView === 'history' && (
+          <main className="flex-1 bg-slate-900 p-8 overflow-auto flex flex-col gap-6 max-w-5xl mx-auto w-full animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
+                  📂 Kayıtlı Boyutlandırma Geçmişi
+                </h2>
+                <p className="text-xs text-slate-500">Daha önce çalıştığınız ve kaydettiğiniz tüm özel çözünürlükler.</p>
+              </div>
+              <button 
+                onClick={() => setCurrentView('dashboard')}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+              >
+                ← Kapat / Geri Dön
+              </button>
             </div>
 
+            {projects.length === 0 ? (
+              <div className="border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-16 text-slate-600 text-sm font-medium gap-2">
+                <span>📁</span>
+                <span>Henüz kaydedilmiş bir boyut çalışması bulunmuyor.</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {projects.map((project) => (
+                  <div key={project.id} className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 flex items-center justify-between hover:border-blue-500/40 transition-all shadow-md group">
+                    <div className="flex flex-col gap-1 min-w-0 flex-1 pr-4">
+                      <h4 className="font-bold text-sm text-slate-200 group-hover:text-blue-400 transition-colors truncate">{project.name}</h4>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono mt-0.5">
+                        <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400 font-semibold">
+                          {project.canvasWidth} x {project.canvasHeight} px
+                        </span>
+                        <span>{project.updatedAt}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleLoadProject(project)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-md transition-all"
+                      >
+                        Aç 📝
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProject(project.id)}
+                        className="bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white p-2 rounded-lg text-xs transition-all"
+                        title="Sil"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </main>
         )}
       </div>

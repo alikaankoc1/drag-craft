@@ -49,7 +49,7 @@ export default function Header({
         {currentView === 'editor' && (
           <button
             onClick={onClear}
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-lg transition-all border border-slate-600 active:scale-95"
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-all shadow-md shadow-red-950/50 active:scale-95"
           >
             Temizle
           </button>

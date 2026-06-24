@@ -6,13 +6,16 @@ import PropertiesPanel from './assets/components/PropertiesPanel';
 
 export interface CanvasElement {
   id: string;
-  type: 'image';
+  type: 'image' | 'text' | 'rect' | 'circle';
   x: number;
   y: number;
   width: number;
   height: number;
   color: string;
   src?: string;
+  text?: string;
+  fontSize?: number;
+  fontFamily?: string;
 }
 
 export interface SavedProject {

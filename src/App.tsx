@@ -139,11 +139,10 @@ function App() {
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-sans antialiased bg-slate-900 text-white select-none">
       <Header 
-        onClear={handleClear} 
-        onSave={handleSaveProject}
-        onImport={() => {}}
-        currentView={currentView === 'history' ? 'dashboard' : currentView} // Header uyumluluğu için
-        onViewChange={(v) => setCurrentView(v as any)}
+      onClear={handleClear} 
+  onSave={handleSaveProject}
+  currentView={currentView === 'history' ? 'dashboard' : currentView}
+  onViewChange={(v) => setCurrentView(v as any)}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -177,47 +176,47 @@ function App() {
           </>
         )}
 
- {/* 2. GİRİŞ PANELİ GÖRÜNÜMÜ (BÜYÜTÜLMÜŞ SÜRÜM) */}
+ {/* 2. GİRİŞ PANELİ GÖRÜNÜMÜ (EKRANA TAM OTURAN SÜRÜM) */}
 {currentView === 'dashboard' && (
-  <main className="flex-1 bg-slate-900 p-12 overflow-auto flex flex-col items-center justify-center w-full">
+  <main className="flex-1 bg-slate-900 p-6 overflow-hidden flex items-center justify-center w-full h-full">
     
-    {/* Kartın genişliğini max-w-4xl yaparak ekranı daha iyi doldurmasını sağladık */}
-    <div className="w-full max-w-4xl bg-slate-800/40 border border-slate-700/50 rounded-2xl p-12 backdrop-blur-sm shadow-2xl flex flex-col gap-10 text-center transition-all">
+    {/* Kartın iç padding değerlerini p-8 ve dikey boşlukları gap-8 yaparak ekrana sığmasını sağladık */}
+    <div className="w-full max-w-4xl bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8 backdrop-blur-sm shadow-2xl flex flex-col gap-8 text-center justify-center transition-all max-h-[90vh] overflow-y-auto">
       
-      <div className="flex flex-col gap-3">
-        <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3 justify-center">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3 justify-center">
           ⚙️ Görsel Boyut Ayarlayıcı
         </h2>
-        <p className="text-base text-slate-400 max-w-xl mx-auto">
+        <p className="text-sm text-slate-400 max-w-xl mx-auto">
           Görselinizi yüklemeden önce hedef çözünürlük piksellerini belirleyin.
         </p>
       </div>
 
-      {/* BOYUT INPUT ALANLARI (max-w-xl yaparak formu da genişlettik) */}
-      <div className="flex items-center justify-center gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-700/40 max-w-xl mx-auto w-full shadow-inner">
+      {/* BOYUT INPUT ALANLARI */}
+      <div className="flex items-center justify-center gap-6 bg-slate-900/50 p-5 rounded-2xl border border-slate-700/40 max-w-xl mx-auto w-full shadow-inner">
         <div className="flex flex-col gap-1.5 items-start flex-1">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">Genişlik (px)</label>
+          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Genişlik (px)</label>
           <input 
             type="number" 
             value={customWidth} 
             onChange={(e) => setCustomWidth(e.target.value)}
-            className="w-full bg-slate-800 text-white font-mono text-base border border-slate-700/80 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+            className="w-full bg-slate-800 text-white font-mono text-base border border-slate-700/80 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
           />
         </div>
-        <div className="text-slate-500 font-bold text-xl self-end pb-3">✕</div>
+        <div className="text-slate-500 font-bold text-lg self-end pb-2">✕</div>
         <div className="flex flex-col gap-1.5 items-start flex-1">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">Yükseklik (px)</label>
+          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Yükseklik (px)</label>
           <input 
             type="number" 
             value={customHeight} 
             onChange={(e) => setCustomHeight(e.target.value)}
-            className="w-full bg-slate-800 text-white font-mono text-base border border-slate-700/80 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+            className="w-full bg-slate-800 text-white font-mono text-base border border-slate-700/80 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
           />
         </div>
       </div>
 
-      {/* DOSYA YÜKLEME ALANI (Genişliği max-w-xl yapıldı, min-h-64 ile dikeyde ciddi şekilde büyütüldü) */}
-      <div className="border-2 border-dashed border-slate-700 hover:border-blue-500/50 transition-all duration-200 rounded-2xl min-h-[260px] bg-slate-900/20 hover:bg-slate-900/40 cursor-pointer max-w-xl mx-auto w-full relative group flex items-center justify-center p-8 shadow-md">
+      {/* DOSYA YÜKLEME ALANI (Dikey yüksekliği min-h-[180px] ile ekrana optimize edildi) */}
+      <div className="border-2 border-dashed border-slate-700 hover:border-blue-500/50 transition-all duration-200 rounded-2xl min-h-[180px] bg-slate-900/20 hover:bg-slate-900/40 cursor-pointer max-w-xl mx-auto w-full relative group flex items-center justify-center p-6 shadow-md">
         <input 
           type="file" 
           accept="image/*"
@@ -233,15 +232,15 @@ function App() {
           }}
           className="absolute inset-0 opacity-0 cursor-pointer z-10"
         />
-        <div className="flex flex-col items-center gap-4 pointer-events-none">
-          <div className="w-16 h-16 bg-slate-800/80 border border-slate-700 rounded-2xl flex items-center justify-center text-3xl shadow-md group-hover:scale-110 group-hover:border-blue-500/40 group-hover:bg-slate-800 transition-all duration-200">
+        <div className="flex flex-col items-center gap-3 pointer-events-none">
+          <div className="w-14 h-14 bg-slate-800/80 border border-slate-700 rounded-2xl flex items-center justify-center text-2xl shadow-md group-hover:scale-110 group-hover:border-blue-500/40 group-hover:bg-slate-800 transition-all duration-200">
             📁
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-base font-bold text-slate-200 group-hover:text-blue-400 transition-colors">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-bold text-slate-200 group-hover:text-blue-400 transition-colors">
               Görsel Seçin veya Buraya Sürükleyin
             </span>
-            <span className="text-xs text-slate-500 font-medium tracking-wide">
+            <span className="text-[11px] text-slate-500 font-medium tracking-wide">
               PNG, JPG, JPEG veya WEBP formatları desteklenir
             </span>
           </div>

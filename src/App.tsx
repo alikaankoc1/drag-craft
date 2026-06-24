@@ -177,65 +177,80 @@ function App() {
           </>
         )}
 
-        {/* 2. GİRİŞ PANELİ GÖRÜNÜMÜ */}
-        {currentView === 'dashboard' && (
-          <main className="flex-1 bg-slate-900 p-8 overflow-auto flex flex-col gap-8 items-center justify-center max-w-4xl mx-auto w-full">
-            <div className="w-full bg-slate-800/50 border border-slate-700/60 rounded-2xl p-8 backdrop-blur-sm shadow-2xl flex flex-col gap-6 text-center">
-              <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2 justify-center">
-                  ⚙️ Görsel Boyut Ayarlayıcı
-                </h2>
-                <p className="text-sm text-slate-400">
-                  Görselinizi yüklemeden önce hedef çözünürlük piksellerini belirleyin.
-                </p>
-              </div>
+ {/* 2. GİRİŞ PANELİ GÖRÜNÜMÜ (BÜYÜTÜLMÜŞ SÜRÜM) */}
+{currentView === 'dashboard' && (
+  <main className="flex-1 bg-slate-900 p-12 overflow-auto flex flex-col items-center justify-center w-full">
+    
+    {/* Kartın genişliğini max-w-4xl yaparak ekranı daha iyi doldurmasını sağladık */}
+    <div className="w-full max-w-4xl bg-slate-800/40 border border-slate-700/50 rounded-2xl p-12 backdrop-blur-sm shadow-2xl flex flex-col gap-10 text-center transition-all">
+      
+      <div className="flex flex-col gap-3">
+        <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3 justify-center">
+          ⚙️ Görsel Boyut Ayarlayıcı
+        </h2>
+        <p className="text-base text-slate-400 max-w-xl mx-auto">
+          Görselinizi yüklemeden önce hedef çözünürlük piksellerini belirleyin.
+        </p>
+      </div>
 
-              <div className="flex items-center justify-center gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 max-w-md mx-auto w-full">
-                <div className="flex flex-col gap-1 items-start flex-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Genişlik (px)</label>
-                  <input 
-                    type="number" 
-                    value={customWidth} 
-                    onChange={(e) => setCustomWidth(e.target.value)}
-                    className="w-full bg-slate-800 text-white font-mono text-sm border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div className="text-slate-600 font-bold self-end pb-2">✕</div>
-                <div className="flex flex-col gap-1 items-start flex-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Yükseklik (px)</label>
-                  <input 
-                    type="number" 
-                    value={customHeight} 
-                    onChange={(e) => setCustomHeight(e.target.value)}
-                    className="w-full bg-slate-800 text-white font-mono text-sm border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
+      {/* BOYUT INPUT ALANLARI (max-w-xl yaparak formu da genişlettik) */}
+      <div className="flex items-center justify-center gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-700/40 max-w-xl mx-auto w-full shadow-inner">
+        <div className="flex flex-col gap-1.5 items-start flex-1">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">Genişlik (px)</label>
+          <input 
+            type="number" 
+            value={customWidth} 
+            onChange={(e) => setCustomWidth(e.target.value)}
+            className="w-full bg-slate-800 text-white font-mono text-base border border-slate-700/80 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+          />
+        </div>
+        <div className="text-slate-500 font-bold text-xl self-end pb-3">✕</div>
+        <div className="flex flex-col gap-1.5 items-start flex-1">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">Yükseklik (px)</label>
+          <input 
+            type="number" 
+            value={customHeight} 
+            onChange={(e) => setCustomHeight(e.target.value)}
+            className="w-full bg-slate-800 text-white font-mono text-base border border-slate-700/80 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+          />
+        </div>
+      </div>
 
-              <div className="border-2 border-dashed border-slate-700 hover:border-blue-500/50 transition-colors rounded-xl p-8 bg-slate-900/30 cursor-pointer max-w-md mx-auto w-full relative group">
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        if (event.target?.result) handleAddImage(event.target.result as string);
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-                <div className="flex flex-col items-center gap-3">
-                  <span className="text-3xl group-hover:scale-110 transition-transform">📁</span>
-                  <span className="text-xs font-semibold text-slate-300">Görsel Seçin veya Buraya Sürükleyin</span>
-                </div>
-              </div>
-            </div>
-          </main>
-        )}
+      {/* DOSYA YÜKLEME ALANI (Genişliği max-w-xl yapıldı, min-h-64 ile dikeyde ciddi şekilde büyütüldü) */}
+      <div className="border-2 border-dashed border-slate-700 hover:border-blue-500/50 transition-all duration-200 rounded-2xl min-h-[260px] bg-slate-900/20 hover:bg-slate-900/40 cursor-pointer max-w-xl mx-auto w-full relative group flex items-center justify-center p-8 shadow-md">
+        <input 
+          type="file" 
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                if (event.target?.result) handleAddImage(event.target.result as string);
+              };
+              reader.readAsDataURL(file);
+            }
+          }}
+          className="absolute inset-0 opacity-0 cursor-pointer z-10"
+        />
+        <div className="flex flex-col items-center gap-4 pointer-events-none">
+          <div className="w-16 h-16 bg-slate-800/80 border border-slate-700 rounded-2xl flex items-center justify-center text-3xl shadow-md group-hover:scale-110 group-hover:border-blue-500/40 group-hover:bg-slate-800 transition-all duration-200">
+            📁
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-base font-bold text-slate-200 group-hover:text-blue-400 transition-colors">
+              Görsel Seçin veya Buraya Sürükleyin
+            </span>
+            <span className="text-xs text-slate-500 font-medium tracking-wide">
+              PNG, JPG, JPEG veya WEBP formatları desteklenir
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+)}
 
         {/* 3. YENİ SAYFA: KAYITLI BOYUTLANDIRMA GEÇMİŞİ SAYFASI */}
         {currentView === 'history' && (

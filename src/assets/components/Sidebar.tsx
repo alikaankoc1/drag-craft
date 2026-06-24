@@ -1,11 +1,9 @@
 interface SidebarProps {
-  onImageUpload: (src: string) => void;
   currentView: 'editor' | 'dashboard' | 'history';
   onViewChange: (view: 'editor' | 'dashboard' | 'history') => void;
 }
 
 export default function Sidebar({
-  onImageUpload,
   currentView,
   onViewChange
 }: SidebarProps) {
@@ -36,35 +34,7 @@ export default function Sidebar({
         </button>
       </div>
 
-      <hr className="border-slate-700" />
-
-      {/* 🔄 HIZLI GÖRSEL DEĞİŞTİRME / YÜKLEME ALANI */}
-      <div className="flex flex-col gap-2">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 px-1">
-          Görsel Yönetimi
-        </h3>
-        <label className="border border-dashed border-slate-600 hover:border-blue-500/50 transition-colors rounded-xl p-5 bg-slate-900/30 cursor-pointer flex flex-col items-center justify-center gap-2 text-center group">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  if (event.target?.result) onImageUpload(event.target.result as string);
-                };
-                reader.readAsDataURL(file);
-              }
-            }}
-            className="hidden"
-          />
-          <span className="text-xl group-hover:scale-110 transition-transform">🔄</span>
-          <span className="text-[11px] font-bold text-slate-300">Yeni Görsel Yükle</span>
-        </label>
-      </div>
-
-      {/* 📂 SOL ALTTALİ SABİT GEÇMİŞ BUTONU */}
+      {/* 📂 SOL ALTAKİ SABİT GEÇMİŞ BUTONU */}
       <div className="mt-auto pt-4 border-t border-slate-700/60">
         <button
           onClick={() => onViewChange('history')}
@@ -76,7 +46,7 @@ export default function Sidebar({
         >
           <span className="flex items-center gap-2">📂 Geçmiş Çalışmalar</span>
           <span className="bg-slate-800 text-[10px] px-1.5 py-0.5 rounded-md text-slate-400 font-mono">
-            Sürüm 2.0
+            v2.0
           </span>
         </button>
       </div>

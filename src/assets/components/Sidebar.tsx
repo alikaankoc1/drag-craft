@@ -1,121 +1,109 @@
-import { useRef } from 'react';
-import type { CanvasElement } from '../../App';
-import TemplateSelector from './TemplateSelector'; // Yeni şablon seçiciyi dahil ediyoruz
-
 interface SidebarProps {
-  onDragStart: (e: React.DragEvent, type: CanvasElement['type']) => void;
   onImageUpload: (src: string) => void;
+  onSelectPreset: (width: number, height: number) => void;
+  canvasWidth: number;
+  canvasHeight: number;
   currentView: 'editor' | 'dashboard';
   onViewChange: (view: 'editor' | 'dashboard') => void;
-  onSelectPreset: (width: number, height: number) => void; // Yeni prop
-  canvasWidth: number;                                    // Yeni prop
-  canvasHeight: number;                                   // Yeni prop
 }
 
-export default function Sidebar({ 
-  onDragStart, 
-  onImageUpload, 
-  currentView, 
-  onViewChange,
+export default function Sidebar({
+  onImageUpload,
   onSelectPreset,
   canvasWidth,
-  canvasHeight
+  canvasHeight,
+  currentView,
+  onViewChange
 }: SidebarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const tools: { id: CanvasElement['type']; label: string; icon: string }[] = [
-    { id: 'text', label: 'Metin Ekle', icon: '📝' },
-    { id: 'rect', label: 'Kare / Dikdörtgen', icon: '⬛' },
-    { id: 'circle', label: 'Daire', icon: '⚪' },
+  
+  // Sadece saf çözünürlük pikselleri ve oranlar
+  const quickSizes = [
+    { name: 'Kare (1:1)', w: 1080, h: 1080, desc: 'Instagram Gönderisi' },
+    { name: 'Dikey (9:16)', w: 1080, h: 1920, desc: 'Story / Reels / Shorts' },
+    { name: 'Yatay Standart (16:9)', w: 1920, h: 1080, desc: 'Full HD Monitör / Video' },
+    { name: 'Geniş Ekran (21:9)', w: 2560, h: 1080, desc: 'UltraWide Monitör Düzeni' },
   ];
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          onImageUpload(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-    e.target.value = '';
-  };
-
   return (
-    <aside className="w-72 bg-slate-800 border-r border-slate-700 p-4 text-white flex flex-col justify-between z-10 overflow-y-auto shrink-0">
-      <div className="flex flex-col gap-6">
-        
-        {/* Şablon Seçici Bölümü */}
-        {currentView === 'editor' && (
-          <>
-            <TemplateSelector 
-              onSelectPreset={onSelectPreset} 
-              canvasWidth={canvasWidth} 
-              canvasHeight={canvasHeight} 
-            />
-            <hr className="border-slate-700" />
-          </>
-        )}
+    <aside className="w-64 bg-slate-800 border-r border-slate-700 p-4 flex flex-col gap-6 select-none shrink-0 h-full">
+      
+      {/* Ekranlar Arası Hızlı Geçiş */}
+      <div className="flex flex-col gap-2">
+        <button
+          onClick={() => onViewChange('dashboard')}
+          className={`w-full py-2 px-3 rounded-lg text-xs font-bold text-left transition-all ${
+            currentView === 'dashboard' ? 'bg-blue-600 text-white' : 'bg-slate-900/40 text-slate-400 hover:bg-slate-700/50'
+          }`}
+        >
+          🎛️ Ana Panel / Yeni Görsel
+        </button>
+        <button
+          onClick={() => onViewChange('editor')}
+          className={`w-full py-2 px-3 rounded-lg text-xs font-bold text-left transition-all ${
+            currentView === 'editor' ? 'bg-blue-600 text-white' : 'bg-slate-900/40 text-slate-400 hover:bg-slate-700/50'
+          }`}
+        >
+          📐 Boyutlandırma Editörü
+        </button>
+      </div>
 
-        {/* Bileşenler Bölümü */}
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Bileşenler</h2>
-          <div className="grid grid-cols-1 gap-2">
-            {tools.map((tool) => (
-              <div
-                key={tool.id}
-                draggable={currentView === 'editor'}
-                onDragStart={(e) => onDragStart(e, tool.id)}
-                onClick={() => {
-                  if (currentView !== 'editor') onViewChange('editor');
-                }}
-                className={`flex items-center gap-3 bg-slate-700 hover:bg-slate-600 p-3 rounded-lg transition-all border border-transparent hover:border-blue-500 shadow-md select-none ${
-                  currentView === 'editor' ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer opacity-70 hover:opacity-100'
-                }`}
-              >
-                <span className="text-xl">{tool.icon}</span>
-                <span className="text-sm font-medium">{tool.label}</span>
-              </div>
-            ))}
+      <hr className="border-slate-700" />
 
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              className="hidden" 
-            />
-
-            <div
-              onClick={() => {
-                if (currentView !== 'editor') onViewChange('editor');
-                setTimeout(() => fileInputRef.current?.click(), 50);
-              }}
-              className="flex items-center gap-3 bg-slate-700 hover:bg-slate-600 p-3 rounded-lg cursor-pointer transition-all border border-transparent hover:border-blue-500 shadow-md select-none"
+      {/* SAF PİKSEL BOYUT ŞABLONLARI */}
+      <div className="flex flex-col gap-3">
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          📐 Hazır Boyut Şablonları
+        </h3>
+        <div className="flex flex-col gap-2">
+          {quickSizes.map((size, index) => (
+            <button
+              key={index}
+              onClick={() => onSelectPreset(size.w, size.h)}
+              className={`w-full text-left bg-slate-900/50 border p-3 rounded-xl transition-all group ${
+                canvasWidth === size.w && canvasHeight === size.h 
+                  ? 'border-blue-500 bg-blue-500/5' 
+                  : 'border-slate-700 hover:border-slate-600'
+              }`}
             >
-              <span className="text-xl">🖼️</span>
-              <span className="text-sm font-medium">Görsel Yükle</span>
-            </div>
-          </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-200 group-hover:text-blue-400 transition-colors">
+                  {size.name}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-0.5">{size.desc}</p>
+              <div className="text-[11px] text-slate-500 font-mono mt-1.5 font-semibold">
+                {size.w} × {size.h} px
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Alt Sekme: Dashboard Butonu */}
-      <div className="mt-8 pt-4 border-t border-slate-700">
-        <button
-          onClick={() => onViewChange(currentView === 'dashboard' ? 'editor' : 'dashboard')}
-          className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all border shadow-md select-none font-medium text-sm ${
-            currentView === 'dashboard'
-              ? 'bg-blue-600 border-blue-500 text-white font-semibold'
-              : 'bg-slate-900/50 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-white'
-          }`}
-        >
-          <span className="text-xl">📁</span>
-          <span>{currentView === 'dashboard' ? 'Editöre Geri Dön' : 'Kaydedilen Projelerim'}</span>
-        </button>
+      <hr className="border-slate-700" />
+
+      {/* GÖRSEL DEĞİŞTİRME */}
+      <div className="flex flex-col gap-2 mt-auto">
+        <label className="border border-dashed border-slate-600 hover:border-blue-500/50 transition-colors rounded-xl p-4 bg-slate-900/30 cursor-pointer flex flex-col items-center justify-center gap-2 text-center group">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  if (event.target?.result) onImageUpload(event.target.result as string);
+                };
+                reader.readAsDataURL(file);
+              }
+            }}
+            className="hidden"
+          />
+          <span className="text-lg group-hover:scale-110 transition-transform">🔄</span>
+          <span className="text-[11px] font-semibold text-slate-400">Görseli Değiştir / Yükle</span>
+        </label>
       </div>
+
     </aside>
   );
 }

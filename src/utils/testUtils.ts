@@ -3,7 +3,7 @@
  * Shared testing utilities for unit and integration tests
  */
 
-import { CanvasElement, SavedProject } from '../App';
+import type { CanvasElement, SavedProject } from '../App';
 
 /**
  * Mock CanvasElement factory
@@ -29,11 +29,10 @@ export const createMockElement = (overrides?: Partial<CanvasElement>): CanvasEle
 export const createMockProject = (overrides?: Partial<SavedProject>): SavedProject => ({
   id: `proj-${Date.now()}`,
   name: `Test Project ${Date.now()}`,
-  width: 1080,
-  height: 1080,
+  updatedAt: new Date().toISOString(),
+  canvasWidth: 1080,
+  canvasHeight: 1080,
   elements: [createMockElement()],
-  imageUrl: 'data:image/png;base64,...',
-  savedAt: new Date().toISOString(),
   ...overrides,
 });
 
@@ -131,34 +130,39 @@ export const assertions = {
   /**
    * Validate project structure
    */
-  isValidProject: (project: any): project is SavedProject => {
+  isValidProject: (project: unknown): project is SavedProject => {
+    if (typeof project !== 'object' || project === null) {
+      return false;
+    }
+
+    const item = project as Record<string, unknown>;
     return (
-      project.id &&
-      typeof project.id === 'string' &&
-      project.name &&
-      typeof project.name === 'string' &&
-      project.width &&
-      typeof project.width === 'number' &&
-      project.height &&
-      typeof project.height === 'number' &&
-      Array.isArray(project.elements) &&
-      project.savedAt &&
-      typeof project.savedAt === 'string'
+      typeof item.id === 'string' &&
+      typeof item.name === 'string' &&
+      typeof item.updatedAt === 'string' &&
+      typeof item.canvasWidth === 'number' &&
+      typeof item.canvasHeight === 'number' &&
+      Array.isArray(item.elements)
     );
   },
 
   /**
    * Validate element structure
    */
-  isValidElement: (element: any): element is CanvasElement => {
+  isValidElement: (element: unknown): element is CanvasElement => {
+    if (typeof element !== 'object' || element === null) {
+      return false;
+    }
+
+    const item = element as Record<string, unknown>;
     return (
-      element.id &&
-      typeof element.id === 'string' &&
-      ['image', 'text', 'rect', 'circle'].includes(element.type) &&
-      typeof element.x === 'number' &&
-      typeof element.y === 'number' &&
-      typeof element.width === 'number' &&
-      typeof element.height === 'number'
+      typeof item.id === 'string' &&
+      typeof item.type === 'string' &&
+      ['image', 'text', 'rect', 'circle'].includes(item.type) &&
+      typeof item.x === 'number' &&
+      typeof item.y === 'number' &&
+      typeof item.width === 'number' &&
+      typeof item.height === 'number'
     );
   },
 };

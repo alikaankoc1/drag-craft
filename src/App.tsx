@@ -18,26 +18,29 @@ export interface CanvasElement {
   fontFamily?: string;
 }
 
-// Yeni: Kaydedilen her bir projenin veri yapısı
 export interface SavedProject {
   id: string;
   name: string;
   updatedAt: string;
   elements: CanvasElement[];
+  canvasWidth: number;  // Yeni: Projenin genişliği
+  canvasHeight: number; // Yeni: Projenin yüksekliği
 }
 
 function App() {
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   
-  // Yeni State'ler: Sayfa yönetimi ve proje listesi
+  // Yeni: Canvas genişlik ve yükseklik state'leri (Varsayılan 800x500)
+  const [canvasWidth, setCanvasWidth] = useState<number>(800);
+  const [canvasHeight, setCanvasHeight] = useState<number>(500);
+
   const [currentView, setCurrentView] = useState<'editor' | 'dashboard'>('editor');
   const [projects, setProjects] = useState<SavedProject[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   const selectedElement = elements.find((el) => el.id === selectedId) || null;
 
-  // İlk yüklemede localStorage'daki tüm projeleri çek
   useEffect(() => {
     const savedProjects = localStorage.getItem('canvas_ai_projects');
     if (savedProjects) {
@@ -49,13 +52,11 @@ function App() {
     }
   }, []);
 
-  // Proje listesi her değiştiğinde localStorage'ı güncelle
   const saveProjectsToStorage = (updatedProjects: SavedProject[]) => {
     setProjects(updatedProjects);
     localStorage.setItem('canvas_ai_projects', JSON.stringify(updatedProjects));
   };
 
-  // Aktif Çalışmayı Kaydetme Fonksiyonu
   const handleSaveProject = () => {
     if (elements.length === 0) {
       alert('Kaydetmek için canvas üzerinde en az bir eleman olmalıdır.');
@@ -65,15 +66,13 @@ function App() {
     let updatedProjects = [...projects];
 
     if (currentProjectId) {
-      // Var olan projeyi güncelle
       updatedProjects = updatedProjects.map((p) =>
         p.id === currentProjectId
-          ? { ...p, elements, updatedAt: new Date().toLocaleString('tr-TR') }
+          ? { ...p, elements, canvasWidth, canvasHeight, updatedAt: new Date().toLocaleString('tr-TR') }
           : p
       );
       alert('Proje değişiklikleri başarıyla kaydedildi! 💾');
     } else {
-      // Yeni proje oluştur
       const projectName = prompt('Projenize bir isim verin:', `Tasarım #${projects.length + 1}`);
       if (!projectName) return;
 
@@ -82,6 +81,8 @@ function App() {
         name: projectName,
         updatedAt: new Date().toLocaleString('tr-TR'),
         elements: elements,
+        canvasWidth,  // Boyut kaydediliyor
+        canvasHeight, // Boyut kaydediliyor
       };
       updatedProjects.push(newProject);
       setCurrentProjectId(newProject.id);
@@ -91,17 +92,23 @@ function App() {
     saveProjectsToStorage(updatedProjects);
   };
 
-  // Projeyi Editörde Açma (Düzenle)
   const handleLoadProject = (project: SavedProject) => {
     setElements(project.elements);
+    setCanvasWidth(project.canvasWidth || 800);  // Projenin boyutu yükleniyor
+    setCanvasHeight(project.canvasHeight || 500); // Projenin boyutu yükleniyor
     setCurrentProjectId(project.id);
     setSelectedId(null);
-    setCurrentView('editor'); // Editör sayfasına geri dön
+    setCurrentView('editor');
   };
 
-  // Projeyi Doğrudan Dashboard'dan İndirme (Export)
   const handleExportProjectJSON = (project: SavedProject) => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project.elements, null, 2));
+    // Dışarı aktarılan JSON'a boyutları da gömüyoruz
+    const exportData = {
+      canvasWidth: project.canvasWidth,
+      canvasHeight: project.canvasHeight,
+      elements: project.elements
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
     downloadAnchor.setAttribute("download", `${project.name}-${Date.now()}.json`);
@@ -110,29 +117,29 @@ function App() {
     downloadAnchor.remove();
   };
 
-  // Proje Silme
-  const handleDeleteProject = (id: string) => {
-    if (confirm('Bu projeyi kalıcı olarak silmek istediğinize emin misiniz?')) {
-      const updated = projects.filter((p) => p.id !== id);
-      saveProjectsToStorage(updated);
-      if (currentProjectId === id) {
-        setElements([]);
-        setCurrentProjectId(null);
-      }
-    }
-  };
-
-  // Dışarıdan JSON Dosyası Yükleme (Import)
   const handleImportJSON = (jsonData: string) => {
     try {
-      const parsedData = JSON.parse(jsonData) as CanvasElement[];
-      if (Array.isArray(parsedData)) {
-        setElements(parsedData);
-        setCurrentProjectId(null); // Dışarıdan geldiği için henüz id'si yok
-        setSelectedId(null);
-        setCurrentView('editor');
-        alert('Tasarım editöre başarıyla yüklendi! 📂');
+      const parsed = JSON.parse(jsonData);
+      
+      // Boyut bilgisi içeren gelişmiş format kontrolü
+      if (parsed && Array.isArray(parsed.elements)) {
+        setElements(parsed.elements);
+        setCanvasWidth(parsed.canvasWidth || 800);
+        setCanvasHeight(parsed.canvasHeight || 500);
+      } else if (Array.isArray(parsed)) {
+        // Eski sade dizi formatıyla geriye dönük uyumluluk
+        setElements(parsed);
+        setCanvasWidth(800);
+        setCanvasHeight(500);
+      } else {
+        alert('Geçersiz JSON yapısı.');
+        return;
       }
+      
+      setCurrentProjectId(null);
+      setSelectedId(null);
+      setCurrentView('editor');
+      alert('Tasarım editöre başarıyla yüklendi! 📂');
     } catch (e) {
       alert('Geçersiz JSON formatı.');
     }
@@ -171,8 +178,8 @@ function App() {
     const newElement: CanvasElement = {
       id: crypto.randomUUID(),
       type: 'image',
-      x: 400,
-      y: 250,
+      x: canvasWidth / 2,
+      y: canvasHeight / 2,
       width: 200,
       height: 150,
       color: 'transparent',
@@ -189,6 +196,11 @@ function App() {
     setCurrentProjectId(null);
   };
 
+  const handleSelectPreset = (w: number, h: number) => {
+    setCanvasWidth(w);
+    setCanvasHeight(h);
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden font-sans antialiased bg-slate-900 text-white select-none">
       <Header 
@@ -199,15 +211,16 @@ function App() {
         onViewChange={setCurrentView}
       />
       <div className="flex flex-1 overflow-hidden">
-        {/* Sol Panel: Aktif sekmeyi de dinliyor */}
         <Sidebar 
           onDragStart={handleDragStart} 
           onImageUpload={handleAddImage}
           currentView={currentView}
           onViewChange={setCurrentView}
+          onSelectPreset={handleSelectPreset}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
         />
         
-        {/* Koşullu Sayfa Render Mekanizması */}
         {currentView === 'editor' ? (
           <>
             <CanvasArea 
@@ -217,6 +230,8 @@ function App() {
               onSelect={setSelectedId}
               onUpdateText={(id, text) => setElements(elements.map(el => el.id === id ? { ...el, text } : el))}
               onUpdatePosition={(id, x, y) => setElements(elements.map(el => el.id === id ? { ...el, x, y } : el))}
+              canvasWidth={canvasWidth}
+              canvasHeight={canvasHeight}
             />
             <PropertiesPanel 
               element={selectedElement} 
@@ -228,7 +243,6 @@ function App() {
             />
           </>
         ) : (
-          /* YARIN YAPACAĞIMIZ YENİ DASHBOARD / KAYDEDİLENLER ALANI */
           <main className="flex-1 bg-slate-900 p-8 overflow-auto flex flex-col gap-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-200">Kaydedilen Projelerim</h2>
@@ -252,11 +266,11 @@ function App() {
                   <div key={project.id} className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col justify-between hover:border-slate-500 transition-all shadow-lg group">
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <h4 className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors truncate max-w-[80%]">
+                        <h4 className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors truncate max-w-[65%]">
                           {project.name}
                         </h4>
-                        <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded font-mono">
-                          {project.elements.length} Eleman
+                        <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded font-mono shrink-0">
+                          {project.canvasWidth || 800}x{project.canvasHeight || 500}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 font-mono mb-6">Son Güncelleme: {project.updatedAt}</p>

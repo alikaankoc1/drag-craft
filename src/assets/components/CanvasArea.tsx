@@ -8,6 +8,8 @@ interface CanvasAreaProps {
   onSelect: (id: string | null) => void;
   onUpdateText: (id: string, newText: string) => void;
   onUpdatePosition: (id: string, x: number, y: number) => void;
+  canvasWidth: number;  // Yeni prop
+  canvasHeight: number; // Yeni prop
 }
 
 export default function CanvasArea({ 
@@ -16,7 +18,9 @@ export default function CanvasArea({
   selectedId, 
   onSelect, 
   onUpdateText,
-  onUpdatePosition
+  onUpdatePosition,
+  canvasWidth,
+  canvasHeight
 }: CanvasAreaProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -71,13 +75,14 @@ export default function CanvasArea({
   };
 
   return (
-    <main className="flex-1 bg-slate-900 p-8 flex items-center justify-center overflow-auto">
+    <main className="flex-1 bg-slate-900 p-8 flex items-center justify-center overflow-auto min-h-0 min-w-0">
       <div
         ref={canvasRef}
         onDragOver={handleDragOver}
         onDrop={handleLocalDrop}
         onClick={handleCanvasClick}
-        className="w-[800px] h-[500px] bg-white rounded-lg shadow-2xl relative overflow-hidden border border-slate-700"
+        style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }} // Dinamik boyutlandırma
+        className="bg-white rounded-lg shadow-2xl relative border border-slate-700 transition-all duration-300 shrink-0"
       >
         {elements.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
@@ -90,7 +95,6 @@ export default function CanvasArea({
             const isSelected = el.id === selectedId;
             const isEditing = el.id === editingId;
 
-            // Dinamik font özellikleri stil nesnesine ekleniyor
             const style: React.CSSProperties = {
               position: 'absolute',
               left: `${el.x}px`,
@@ -100,8 +104,8 @@ export default function CanvasArea({
               color: el.type === 'text' ? el.color : undefined,
               backgroundColor: (el.type === 'rect' || el.type === 'circle') ? el.color : undefined,
               transform: 'translate(-50%, -50%)',
-              fontSize: el.type === 'text' ? `${el.fontSize}px` : undefined, // Dinamik boyut
-              fontFamily: el.type === 'text' ? el.fontFamily : undefined,    // Dinamik font ailesi
+              fontSize: el.type === 'text' ? `${el.fontSize}px` : undefined,
+              fontFamily: el.type === 'text' ? el.fontFamily : undefined,
             };
 
             const activeClass = isSelected 

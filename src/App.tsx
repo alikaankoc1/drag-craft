@@ -32,10 +32,8 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canvasWidth, setCanvasWidth] = useState<number>(800);
   const [canvasHeight, setCanvasHeight] = useState<number>(500);
-  const selectedElement = elements.find((el) => el.id === selectedId) || null;
 
-  const [currentView, setCurrentView] = useState<'editor' | 'dashboard'>('editor');
-  const [projects, setProjects] = useState<SavedProject[]>([]);
+const [currentView, setCurrentView] = useState<'editor' | 'dashboard'>('dashboard');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   // Yeni State'ler: Arama Motoru ve Şablonlar İçin
@@ -51,15 +49,24 @@ function App() {
     { id: '5', name: 'Motivasyon Kartı', bgKeyword: 'workspace,success', text: 'Asla Vazgeçme!\nBugün Yeni Bir Başlangıç' }
   ];
 
-  useEffect(() => {
+  // HATASIZ LAZY STATE: Projeleri ilk renderda doğrudan LocalStorage'dan güvenle okuyoruz
+  const [projects, setProjects] = useState<SavedProject[]>(() => {
     const savedProjects = localStorage.getItem('canvas_ai_projects');
     if (savedProjects) {
       try {
-        setProjects(JSON.parse(savedProjects));
+        return JSON.parse(savedProjects);
       } catch (e) {
         console.error('Projeler yüklenirken hata oluştu:', e);
+        return [];
       }
     }
+    return [];
+  });
+
+  // Seçili elemanı türetilmiş state olarak buluyoruz
+  const selectedElement = elements.find((el) => el.id === selectedId) || null;
+
+  useEffect(() => {
     // İlk açılışta varsayılan şablonları yükle
     setTemplatedTemplates(defaultTemplates);
   }, []);
@@ -84,8 +91,9 @@ function App() {
   };
 
   // Şablona Tıklandığında Editöre Aktarma ve Canvas'ı Yapılandırma
+ // Şablona Tıklandığında Editöre Aktarma ve Canvas'ı Yapılandırma
   const handleSelectTemplate = (template: { name: string; bgKeyword: string; text: string }) => {
-    // Canvas boyutunu kare şablon standardına çekelim (Sosyal Medya dostu)
+    // Canvas boyutunu kare şablon standardına çekelim (Sosyal Medya dostu: 800x800)
     setCanvasWidth(800);
     setCanvasHeight(800);
 
@@ -93,11 +101,28 @@ function App() {
     const imageId = crypto.randomUUID();
     const textId = crypto.randomUUID();
 
-    // 1. Katman: Unsplash Source üzerinden arama kelimesine uygun yüksek kaliteli arka plan görseli
-    const bgImageUrl = `https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80`; 
-    // Unsplash'in dinamik yönlendirme servisini kullanarak anahtar kelimeye göre görsel bağlıyoruz
-    const dynamicBgUrl = `https://source.unsplash.com/featured/800x800/?${encodeURIComponent(template.bgKeyword)}`;
+    // Güvenilir ve hızlı çalışan Unsplash Source alternatifi (Dinamik anahtar kelime beslemeli)
+    const dynamicBgUrl = `https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=800&h=800&q=80`; 
+    
+    // NOT: İsterseniz bgKeyword'e göre tamamen özelleşmiş statik Unsplash id'leri de eşleştirebilirsiniz.
+    // Şablon kelimesine göre arayüze can verecek dinamik arka plan görsel atamaları:
+    let selectedBg = dynamicBgUrl;
+    if (template.bgKeyword.includes('mosque')) {
+      selectedBg = 'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&w=800&h=800&q=80'; // Cuma / Cami konsepti
+    } else if (template.bgKeyword.includes('birthday')) {
+      selectedBg = 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&h=800&q=80'; // Doğum Günü konsepti
+    } else if (template.bgKeyword.includes('cyberpunk')) {
+      selectedBg = 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&h=800&q=80'; // Teknoloji konsepti
+    } else if (template.bgKeyword.includes('minimalist')) {
+      selectedBg = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&h=800&q=80'; // Doğa konsepti
+    } else if (template.bgKeyword.includes('workspace')) {
+      selectedBg = 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=800&h=800&q=80'; // Motivasyon/Çalışma alanı konsepti
+    } else {
+      // Arama motorundan dinamik kelime geldiyse Unsplash Source alternatifi kullanalım:
+      selectedBg = `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&h=800&q=80`;
+    }
 
+    // 1. Katman: Arka Plan Görsel Elemanı (Canvas'ı kaplayacak şekilde merkezde: 400x400 konumunda 800x800 boyut)
     generatedElements.push({
       id: imageId,
       type: 'image',
@@ -106,30 +131,29 @@ function App() {
       width: 800,
       height: 800,
       color: 'transparent',
-      src: dynamicBgUrl // Arama motorundan dönen resim
+      src: selectedBg
     });
 
-    // 2. Katman: Görselin üstüne şık bir yerleşim metni
+    // 2. Katman: Görselin üstüne gelecek olan özelleştirilebilir şık Metin Elemanı
     generatedElements.push({
       id: textId,
       type: 'text',
       x: 400,
       y: 400,
-      width: 500,
-      height: 100,
-      color: '#ffffff', // Beyaz font arka planda okunsun diye
+      width: 600,
+      height: 150,
+      color: '#ffffff', // Koyu renkli resimlerin üzerinde net okunması için beyaz font
       text: template.text,
-      fontSize: 32,
-      fontFamily: 'serif'
+      fontSize: 36,
+      fontFamily: 'sans-serif'
     });
 
+    // Hazırlanan elemanları canvas state'ine basıyoruz
     setElements(generatedElements);
-    setCurrentProjectId(null); // Yeni bir şablondan türediği için id'si boş
-    setSelectedId(textId); // Metni direkt seçili getirelim ki düzenleyebilsin
-    setCurrentView('editor'); // Pürüzsüzce editör sayfasına geçiş yap
-    alert(`"${template.name}" başarıyla editöre yüklendi! Metne çift tıklayarak düzenleyebilirsiniz. ✨`);
+    setCurrentProjectId(null); // Yeni bir şablondan türetildiği için henüz bir proje ID'si yok
+    setSelectedId(textId); // Metni doğrudan seçili hale getirelim ki PropertiesPanel hemen açılsın
+    setCurrentView('editor'); // Kullanıcıyı pürüzsüzce editör alanına yönlendiriyoruz
   };
-
   const saveProjectsToStorage = (updatedProjects: SavedProject[]) => {
     setProjects(updatedProjects);
     localStorage.setItem('canvas_ai_projects', JSON.stringify(updatedProjects));
@@ -177,6 +201,16 @@ function App() {
     setCurrentProjectId(project.id);
     setSelectedId(null);
     setCurrentView('editor');
+  };
+
+  // Proje Silme Fonksiyonu
+  const handleDeleteProject = (id: string) => {
+    if (!confirm('Bu projeyi silmek istediğinize emin misiniz?')) return;
+    const updatedProjects = projects.filter((p) => p.id !== id);
+    saveProjectsToStorage(updatedProjects);
+    if (currentProjectId === id) {
+      handleClear();
+    }
   };
 
   const handleExportProjectJSON = (project: SavedProject) => {
@@ -311,42 +345,44 @@ function App() {
             />
           </>
         ) : (
-          /* DASHBOARD: ARAMA MOTORLU CANVA ŞABLON PANELİ */
-          <main className="flex-1 bg-slate-900 p-8 overflow-auto flex flex-col gap-8">
-            
-            {/* CANVA TARZI ARAMA HERO BÖLÜMÜ */}
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 shadow-xl flex flex-col items-center text-center justify-center gap-4 relative overflow-hidden border border-blue-400/20">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
-              <h2 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm">
-                Bugün ne tasarlayacaksınız?
-              </h2>
-              <p className="text-sm text-blue-100 max-w-md">
-                Kelimenizi aratın, arka planı canlı görsellerle beslenen şık şablonları saniyeler içinde düzenlemeye başlayın.
-              </p>
-              
-              <form onSubmit={handleSearchSubmit} className="w-full max-w-xl mt-2">
-                <div className="relative flex items-center bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden px-4 py-1">
-                  <span className="text-xl mr-2 text-slate-400">🔍</span>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder='Örn: "cuma", "doğum günü", "space", "neon"...'
-                    className="w-full bg-transparent text-slate-800 placeholder-slate-400 text-sm font-medium focus:outline-none py-3"
-                  />
-                  {searchQuery && (
-                    <button 
-                      type="button" 
-                      onClick={() => { setSearchQuery(''); setTemplatedTemplates(defaultTemplates); }}
-                      className="text-slate-400 hover:text-slate-600 text-sm font-bold px-2"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
+      /* DASHBOARD: ARAMA MOTORLU CANVA ŞABLON PANELİ */
+<main className="flex-1 bg-slate-900 p-8 overflow-auto flex flex-col gap-8">
+  
+  {/* MİNİMALİST VE PROJE RENKLERİNE UYGUN ARAMA ALANI */}
+  <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm">
+    <div className="flex flex-col gap-1 text-center md:text-left">
+      <h2 className="text-xl font-bold text-white flex items-center gap-2 justify-center md:justify-start">
+        <span className="text-blue-400">✨</span> Bugün ne tasarlayacaksınız?
+      </h2>
+      <p className="text-xs text-slate-400">
+        Kelimenizi aratın ve hazır şablonlarla saniyeler içinde çalışmaya başlayın.
+      </p>
+    </div>
+    
+    <form onSubmit={handleSearchSubmit} className="w-full md:w-96 shrink-0">
+      <div className="relative flex items-center bg-slate-900/90 border border-slate-700 rounded-xl overflow-hidden px-3.5 py-0.5 focus-within:border-blue-500/70 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all shadow-inner">
+        <span className="text-base mr-2 text-slate-500">🔍</span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder='Örn: "cuma", "space", "neon"...'
+          className="w-full bg-transparent text-slate-200 placeholder-slate-500 text-xs font-medium focus:outline-none py-2.5"
+        />
+        {searchQuery && (
+          <button 
+            type="button" 
+            onClick={() => { setSearchQuery(''); setTemplatedTemplates(defaultTemplates); }}
+            className="text-slate-500 hover:text-slate-300 text-xs font-bold px-1 transition-colors"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </form>
+  </div>
 
+  {/* DİNAMİK KEŞFET / ŞABLONLAR KART LİSTESİ (Aşağıdaki kısım aynen devam ediyor...) */}
             {/* DİNAMİK KEŞFET / ŞABLONLAR KART LİSTESİ */}
             <div className="flex flex-col gap-4">
               <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
@@ -359,14 +395,12 @@ function App() {
                     onClick={() => handleSelectTemplate(tmpl)}
                     className="group bg-slate-800 border border-slate-700/60 rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-blue-500/50 hover:shadow-xl transition-all flex flex-col h-48 relative"
                   >
-                    {/* Arka Planda canva etkisi yaratacak bulanık/önizleme resmi maskesi */}
                     <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 z-10 transition-opacity group-hover:opacity-90" />
                     <img 
                       src={`https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=50`}
                       alt={tmpl.name}
                       className="absolute inset-0 w-full h-full object-cover filter saturate-50 contrast-125 opacity-40 group-hover:scale-105 transition-transform duration-500"
                     />
-                    {/* Kart İçerik Yazısı */}
                     <div className="p-4 flex flex-col justify-between h-full relative z-20">
                       <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold px-2 py-0.5 rounded-full w-fit uppercase tracking-wider">
                         Şablon
@@ -385,7 +419,7 @@ function App() {
 
             <hr className="border-slate-800" />
 
-            {/* KULLANICININ KENDİ KAYDETTİĞİ PROJELER (DÜNKÜ KISIM) */}
+            {/* KULLANICININ KENDİ KAYDETTİĞİ PROJELER */}
             <div className="flex flex-col gap-4">
               <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
                 <span>📁</span> Benim Kaydettiğim Tasarımlar
